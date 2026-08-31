@@ -7,15 +7,13 @@ Ein privates Bastelprojekt, kein fertiges Produkt. Keine Gewähr.
 
 ## Herunterladen
 
-Unter [Releases](../../releases) liegen zwei Setups:
+Unter [Releases](../../releases) liegt `Tapete-Setup-X.Y.Z.exe` mit rund 95 MB. Es ist eine
+Benutzerinstallation nach `%LOCALAPPDATA%\Programs\Tapete` und fragt nicht nach
+Administratorrechten.
 
-`Tapete-Setup-X.Y.Z.exe` — nur das Programm, rund 95 MB.
-
-`Tapete-Setup-X.Y.Z-mit-Videos.exe` — zusätzlich zwölf Beispielvideos, rund 668 MB.
-Beim Installieren lassen sie sich abwählen.
-
-Beides sind Benutzerinstallationen nach `%LOCALAPPDATA%\Programs\Tapete`. Sie fragen
-nicht nach Administratorrechten.
+Videos sind nicht dabei. Die zwölf, mit denen entwickelt wurde, stammen aus dem Netz und
+gehören nicht zu diesem Projekt; auf einem steht ein Wasserzeichen von moewalls.com. Eigene
+Videos kommen nach `Videos\Tapeten`, siehe unten.
 
 ## Bedienen
 
@@ -37,6 +35,15 @@ Fenster nebeneinander lösen die Pause also aus.
 
 **Mit Windows starten** — legt eine Verknüpfung im Autostart-Ordner an. Tapete startet
 dann ohne Fenster und setzt den zuletzt gewählten Hintergrund.
+
+## Aktualisierungen
+
+Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung vorliegt. Wenn ja,
+erscheint im Fenster ein Knopf „Neu: x.y.z"; ein Klick lädt das Setup und startet es.
+Klappt die Abfrage nicht, etwa ohne Netz, bleibt der Knopf weg und es kommt keine Meldung.
+
+Heruntergeladen wird nur von `github.com` und nur über HTTPS. Die Adresse stammt aus einer
+Antwort aus dem Netz und wird vor dem Laden auf ihre Herkunft geprüft.
 
 ## Videoformate
 
