@@ -1,0 +1,23 @@
+# Kompilate und Zwischenstaende. Lassen sich jederzeit neu bauen:
+#   dotnet publish Tapete.csproj -c Release -o fertig
+bin/
+obj/
+
+# Der fertige Ordner enthaelt neben Tapete.exe auch mpv.exe mit 115 MB.
+# Beides ist erzeugt beziehungsweise geladen, gehoert also nicht in die Geschichte.
+# Woher mpv kommt, steht in LIESMICH.md.
+fertig/
+
+# Reste von Windows
+Thumbs.db
+desktop.ini
+*.tmp
+
+# Kopie der Programmdateien fuer die Weitergabe, wird bei Bedarf neu gefuellt.
+weitergabe/
+
+# Reparaturskript fuer die echten Benutzereinstellungen, gehoert mit ins Archiv.
+!reparatur/
+
+# Setup-Skript gehoert mit ins Archiv, das Ergebnis nicht.
+!setup/

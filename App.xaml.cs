@@ -1,0 +1,223 @@
+using System.Drawing;
+using System.IO;
+using System.Reflection;
+using System.Windows;
+using Forms = System.Windows.Forms;
+
+namespace Tapete;
+
+public partial class App : Application
+{
+    private static Mutex? _einzelInstanz;
+
+    public Settings Einstellungen { get; private set; } = new();
+    // Nur melden, was tatsaechlich spielt. Sonst zeigt die Statuszeile "Laeuft: x.mp4"
+    // und die Kachel einen Punkt, obwohl der Aufbau fehlgeschlagen ist.
+    public string? AktuellesVideo => _wallpaper is { Laeuft: true } ? _wallpaper.VideoPfad : null;
+
+    private Hintergrund? _wallpaper;
+    private MainWindow? _fenster;
+    private Forms.NotifyIcon? _tray;
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        Hintergrund.Notiz("OnStartup, Argumente: [" + string.Join(" ", e.Args) + "]");
+
+        // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
+        _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
+        if (!neu) { Hintergrund.Notiz("ENDE: schon eine Instanz da"); Shutdown(); return; }
+
+        Einstellungen = Settings.Laden();
+        Hintergrund.Notiz("Einstellungen geladen. LetztesVideo=" + (Einstellungen.LetztesVideo ?? "null"));
+
+        // Reparatur: Wurde das Programm beim letzten Mal abgewuergt, koennen die
+        // Desktop-Symbole noch ausgeblendet sein. Erst einmal wieder einschalten.
+        Hintergrund.SymboleWiederherstellen();
+
+        _fenster = new MainWindow();
+        TrayAufbauen();
+
+        bool versteckt = e.Args.Any(a => a.Equals("--versteckt", StringComparison.OrdinalIgnoreCase));
+        if (!versteckt) _fenster.Show();
+
+        // Zuletzt gewaehltes Video wieder anwerfen.
+        bool gesetzt = !string.IsNullOrWhiteSpace(Einstellungen.LetztesVideo);
+        bool da = gesetzt && File.Exists(Einstellungen.LetztesVideo);
+        Hintergrund.Notiz($"Startvideo: gesetzt={gesetzt} vorhanden={da}");
+        if (gesetzt && da) HintergrundSetzen(Einstellungen.LetztesVideo!);
+        if (_wallpaper is not { Laeuft: true }) NachreichenStarten();
+    }
+
+    /// <summary>
+    /// Zweiter Anlauf fuer den Hintergrund, alle fuenf Sekunden, hoechstens sechsmal.
+    ///
+    /// Beim Anmelden schlug der erste Versuch am 31.08.2026 fuenfmal in Folge fehl,
+    /// zuletzt weil Settings.Laden() eine leere Einstellung lieferte, obwohl die
+    /// Datei unveraendert dalag. Von Hand gestartet klappt derselbe Aufruf immer.
+    /// Die Ursache ist ungeklaert; ein begrenzter zweiter Anlauf deckt sie ab, egal
+    /// woran es liegt, und kostet im Normalfall nichts, weil er dann gar nicht laeuft.
+    ///
+    /// ponytail: Wiederholen statt Ursache beheben. Sobald das Protokoll die Ursache
+    /// nennt, gehoert die an ihrer Stelle behoben und das hier kann weg.
+    /// </summary>
+    private void NachreichenStarten()
+    {
+        int versuch = 0;
+        var takt = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(5)
+        };
+        takt.Tick += (_, _) =>
+        {
+            versuch++;
+            Einstellungen = Settings.Laden();
+            string? v = Einstellungen.LetztesVideo;
+            bool brauchbar = !string.IsNullOrWhiteSpace(v) && File.Exists(v);
+            Hintergrund.Notiz($"Nachreichen {versuch}: brauchbar={brauchbar}");
+
+            if (brauchbar) HintergrundSetzen(v!);
+            if (_wallpaper is { Laeuft: true })
+            {
+                Hintergrund.Notiz($"Nachreichen {versuch}: geglueckt");
+                takt.Stop();
+                return;
+            }
+            if (versuch >= 6)
+            {
+                Hintergrund.Notiz("Nachreichen aufgegeben nach 6 Versuchen");
+                takt.Stop();
+            }
+        };
+        takt.Start();
+        Hintergrund.Notiz("Erster Versuch fehlgeschlagen, Nachreichen laeuft an");
+    }
+
+    // ---------- Hintergrund ----------
+
+    public void HintergrundSetzen(string pfad)
+    {
+        if (!File.Exists(pfad)) { Hintergrund.Notiz("HintergrundSetzen: Datei fehlt, " + pfad); return; }
+
+        HintergrundAus(merken: false);
+
+        // problem faengt die Meldung aus dem Konstruktor ab. Sie wird ganz zum Schluss
+        // noch einmal gesetzt, weil StandAktualisieren() dieselbe Zeile beschreibt und
+        // den Fehler sonst sofort wieder ueberdeckt.
+        string? problem = null;
+        _wallpaper = new Hintergrund(pfad, text => { problem = text; _fenster?.FehlerZeigen(text); })
+        {
+            BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren,
+            Bildschirm = Einstellungen.Bildschirm
+        };
+
+        // Nur merken, was auch wirklich laeuft. Sonst versucht Tapete bei jedem Start
+        // dieselbe kaputte Datei und wartet dabei jedes Mal auf ein mpv-Fenster,
+        // das nie kommt - ohne Fenster, also im Autostart, unbemerkt.
+        if (_wallpaper.Laeuft)
+        {
+            Einstellungen.LetztesVideo = pfad;
+            Einstellungen.Speichern();
+        }
+
+        _fenster?.StandAktualisieren();
+        TrayTextSetzen();
+        if (problem is not null) _fenster?.FehlerZeigen(problem);
+    }
+
+    public void HintergrundAus() => HintergrundAus(merken: true);
+
+    private void HintergrundAus(bool merken)
+    {
+        if (_wallpaper is not null)
+        {
+            _wallpaper.Dispose();
+            _wallpaper = null;
+        }
+        if (merken)
+        {
+            Einstellungen.LetztesVideo = null;
+            Einstellungen.Speichern();
+        }
+        _fenster?.StandAktualisieren();
+        TrayTextSetzen();
+    }
+
+    /// <summary>Setzt denselben Hintergrund neu, etwa nach einem Bildschirmwechsel.</summary>
+    public void HintergrundNeuAufbauen()
+    {
+        string? pfad = _wallpaper?.VideoPfad ?? Einstellungen.LetztesVideo;
+        if (!string.IsNullOrWhiteSpace(pfad) && File.Exists(pfad)) HintergrundSetzen(pfad);
+    }
+
+    public void PauseRegelAnwenden(bool an)
+    {
+        if (_wallpaper is not null) _wallpaper.BeiVollbildPausieren = an;
+    }
+
+    // ---------- Infobereich ----------
+
+    private void TrayAufbauen()
+    {
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Fenster anzeigen", null, (_, _) => FensterZeigen());
+        menu.Items.Add("Hintergrund aus", null, (_, _) => HintergrundAus());
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Beenden", null, (_, _) => Beenden());
+
+        _tray = new Forms.NotifyIcon
+        {
+            Icon = EigenesIcon(),
+            Visible = true,
+            Text = "Tapete",
+            ContextMenuStrip = menu
+        };
+        _tray.DoubleClick += (_, _) => FensterZeigen();
+    }
+
+    private static Icon EigenesIcon()
+    {
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe))
+            {
+                var ico = Icon.ExtractAssociatedIcon(exe);
+                if (ico is not null) return ico;
+            }
+        }
+        catch { }
+        return SystemIcons.Application;
+    }
+
+    private void TrayTextSetzen()
+    {
+        if (_tray is null) return;
+        string t = AktuellesVideo is null
+            ? "Tapete – aus"
+            : "Tapete – " + Path.GetFileName(AktuellesVideo);
+        _tray.Text = t.Length > 63 ? t[..60] + "..." : t;   // Windows erlaubt nur 63 Zeichen
+    }
+
+    private void FensterZeigen()
+    {
+        if (_fenster is null) return;
+        _fenster.Show();
+        _fenster.WindowState = WindowState.Normal;
+        _fenster.Activate();
+        _fenster.Neuladen();
+    }
+
+    private void Beenden()
+    {
+        HintergrundAus(merken: false);
+        if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
+        Shutdown();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
+        base.OnExit(e);
+    }
+}

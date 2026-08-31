@@ -1,0 +1,252 @@
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using Microsoft.Win32;
+
+namespace Tapete;
+
+public partial class MainWindow : Window
+{
+    private readonly ObservableCollection<VideoItem> _items = new();
+    private App Programm => (App)Application.Current;
+
+    // Solange true, sind die Schalter-Ereignisse stumm. Sonst schreibt schon das
+    // Setzen des Anfangszustands im Konstruktor die Einstellung und die Registry
+    // zurueck - und wenn dabei etwas schiefgeht, steht der Schalter stillschweigend
+    // auf aus. Genau so war die Pause am 31.08.2026 abgeschaltet.
+    private bool _laedt = true;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        Liste.ItemsSource = _items;
+
+        BildschirmeFuellen();
+        PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
+        AutostartSchalter.IsChecked = Settings.Autostart;
+
+        DragEnter += (_, e) => { if (HatVideos(e)) ZiehFlaeche.Visibility = Visibility.Visible; };
+        DragLeave += (_, _) => ZiehFlaeche.Visibility = Visibility.Collapsed;
+        DragOver += (_, e) =>
+        {
+            e.Effects = HatVideos(e) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        };
+        Drop += Abgelegt;
+
+        Neuladen();
+        _laedt = false;
+        _ = NachUpdateSehen();
+    }
+
+    // ---------- Liste ----------
+
+    public void Neuladen()
+    {
+        string ordner = Settings.VideoOrdner;
+        var dateien = Directory.EnumerateFiles(ordner)
+                               .Where(Hintergrund.IstUnterstuetzt)
+                               .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
+                               .ToList();
+
+        _items.Clear();
+        foreach (var f in dateien) _items.Add(new VideoItem(f));
+
+        Leer.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        VorschauBilderLaden();
+        StandAktualisieren();
+    }
+
+    /// <summary>Vorschaubilder auf einem eigenen Faden holen, damit die Oberflaeche fluessig bleibt.</summary>
+    private void VorschauBilderLaden()
+    {
+        var kopie = _items.ToList();
+        var faden = new Thread(() =>
+        {
+            foreach (var item in kopie)
+            {
+                var bild = Thumbs.Get(item.Pfad, 480);
+                if (bild is null) continue;
+                Dispatcher.BeginInvoke(() => item.Bild = bild);
+            }
+        });
+        faden.SetApartmentState(ApartmentState.STA);
+        faden.IsBackground = true;
+        faden.Start();
+    }
+
+    public void StandAktualisieren()
+    {
+        string? aktiv = Programm.AktuellesVideo;
+        foreach (var i in _items) i.Laeuft = aktiv is not null &&
+            string.Equals(i.Pfad, aktiv, StringComparison.OrdinalIgnoreCase);
+
+        AusKnopf.IsEnabled = aktiv is not null;
+        Status.Text = aktiv is null
+            ? $"Nichts aktiv · {_items.Count} Video{(_items.Count == 1 ? "" : "s")} im Ordner"
+            : $"Läuft: {Path.GetFileName(aktiv)}";
+    }
+
+    public void FehlerZeigen(string text) => Status.Text = "Geht nicht: " + text;
+
+    // ---------- Knoepfe ----------
+
+    private void KachelGeklickt(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is VideoItem item)
+            Programm.HintergrundSetzen(item.Pfad);
+    }
+
+    private void Ausschalten(object sender, RoutedEventArgs e) => Programm.HintergrundAus();
+
+    private void OrdnerOeffnen(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Settings.VideoOrdner}\"") { UseShellExecute = true });
+
+    private void VideoHinzufuegen(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = "Video auswählen",
+            Filter = Hintergrund.DialogFilter,
+            Multiselect = true
+        };
+        if (dlg.ShowDialog(this) == true) Kopieren(dlg.FileNames);
+    }
+
+    // ---------- Ziehen und Ablegen ----------
+
+    private static bool HatVideos(DragEventArgs e) =>
+        e.Data.GetDataPresent(DataFormats.FileDrop) &&
+        (e.Data.GetData(DataFormats.FileDrop) as string[])?.Any(Hintergrund.IstUnterstuetzt) == true;
+
+    private void Abgelegt(object sender, DragEventArgs e)
+    {
+        ZiehFlaeche.Visibility = Visibility.Collapsed;
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] pfade) Kopieren(pfade);
+    }
+
+    private void Kopieren(IEnumerable<string> pfade)
+    {
+        string ziel = Settings.VideoOrdner;
+        string? letztes = null;
+        foreach (var p in pfade.Where(Hintergrund.IstUnterstuetzt))
+        {
+            try
+            {
+                string neu = Path.Combine(ziel, Path.GetFileName(p));
+                if (!string.Equals(Path.GetFullPath(p), Path.GetFullPath(neu), StringComparison.OrdinalIgnoreCase)
+                    && !File.Exists(neu))
+                    File.Copy(p, neu);
+                letztes = neu;
+            }
+            catch (Exception ex) { FehlerZeigen(ex.Message); }
+        }
+        Neuladen();
+        if (letztes is not null) Programm.HintergrundSetzen(letztes);
+    }
+
+    // ---------- Schalter ----------
+
+    /// <summary>
+    /// Fuellt das Auswahlfeld. Erster Eintrag spannt ueber alle Bildschirme, danach
+    /// jeder einzelne. Bei nur einem Monitor bleibt das Feld trotzdem stehen - es
+    /// auszublenden waere eine Sonderregel fuer nichts.
+    /// </summary>
+    private void BildschirmeFuellen()
+    {
+        BildschirmWahl.Items.Clear();
+        BildschirmWahl.Items.Add(new BildschirmEintrag("*", "Alle Bildschirme"));
+        foreach (var b in Native.Bildschirme())
+            BildschirmWahl.Items.Add(new BildschirmEintrag(b.Name, b.ToString()));
+
+        string? gewaehlt = Programm.Einstellungen.Bildschirm;
+        var treffer = BildschirmWahl.Items.Cast<BildschirmEintrag>()
+                        .FirstOrDefault(x => x.Name == gewaehlt);
+        // Ohne Merkposten der Hauptbildschirm, nicht "alle" - so war es bis zum
+        // 31.08.2026, und auf zwei Monitoren zerschnitt es das Video.
+        BildschirmWahl.SelectedItem = treffer
+            ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().Skip(1).FirstOrDefault()
+            ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().First();
+    }
+
+    private sealed record BildschirmEintrag(string Name, string Anzeige)
+    {
+        public override string ToString() => Anzeige;
+    }
+
+    private void BildschirmGewaehlt(object sender, SelectionChangedEventArgs e)
+    {
+        if (_laedt) return;
+        if (BildschirmWahl.SelectedItem is not BildschirmEintrag b) return;
+        Programm.Einstellungen.Bildschirm = b.Name;
+        Programm.Einstellungen.Speichern();
+        Programm.HintergrundNeuAufbauen();
+    }
+
+    private Neuigkeit? _neuigkeit;
+
+    /// <summary>
+    /// Sucht im Hintergrund nach einer neueren Fassung. Faellt die Suche aus - kein
+    /// Netz, GitHub nicht erreichbar, Repository noch nicht eingetragen - bleibt der
+    /// Knopf einfach unsichtbar. Ein Fehlerdialog beim Programmstart waere laestiger
+    /// als der ausgebliebene Hinweis.
+    /// </summary>
+    private async Task NachUpdateSehen()
+    {
+        _neuigkeit = await Aktualisierung.Suchen();
+        if (_neuigkeit is null) return;
+        UpdateKnopf.Content = $"Neu: {_neuigkeit.Version}";
+        UpdateKnopf.Visibility = Visibility.Visible;
+    }
+
+    private async void UpdateGeklickt(object sender, RoutedEventArgs e)
+    {
+        if (_neuigkeit is null) return;
+        UpdateKnopf.IsEnabled = false;
+        UpdateKnopf.Content = "Wird geladen...";
+        string? fehler = await Aktualisierung.HolenUndStarten(_neuigkeit);
+        if (fehler is null) return;   // Der Installer uebernimmt, Tapete wird gleich beendet.
+        FehlerZeigen(fehler);
+        UpdateKnopf.Content = $"Neu: {_neuigkeit.Version}";
+        UpdateKnopf.IsEnabled = true;
+    }
+
+    private void PauseGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        bool an = PauseSchalter.IsChecked == true;
+        Programm.Einstellungen.BeiVollbildPausieren = an;
+        Programm.Einstellungen.Speichern();
+        Programm.PauseRegelAnwenden(an);
+    }
+
+    private void AutostartGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Settings.Autostart = AutostartSchalter.IsChecked == true;
+    }
+
+    // ---------- Fenster ----------
+
+    private void TitelZiehen(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2) WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal : WindowState.Maximized;
+        else if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+    }
+
+    private void Minimieren(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void Verstecken(object sender, RoutedEventArgs e) => Hide();
+
+    /// <summary>Fenster zu heisst nicht Programm zu: der Hintergrund laeuft weiter.</summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        e.Cancel = true;
+        Hide();
+    }
+}
+

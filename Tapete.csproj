@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Tapete</AssemblyName>
+    <RootNamespace>Tapete</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <Product>Tapete</Product>
+    <AssemblyTitle>Tapete</AssemblyTitle>
+    <Company>Tapete</Company>
+    <Description>Animierter Desktop-Hintergrund</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- WFO0003: WinForms moechte die DPI-Einstellung selbst setzen. Hier fuehrt aber WPF,
+         die Angabe im Manifest ist genau richtig. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+
+    <!-- Sparsam laufen: ein Hintergrundprogramm braucht keine mehrfachen GC-Halden.
+         Gemessen am 31.08.2026. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <EventSourceSupport>false</EventSourceSupport>
+
+    <!-- InvariantGlobalization stand hier und ist wieder raus. Es sparte etwas
+         Speicher, brachte WPF aber beim ersten Auswahlfeld zum Absturz:
+         "Cannot find non-neutral culture related to 'en-us'" aus
+         XmlLanguage.GetSpecificCulture(), aufgerufen vom ContentPresenter einer
+         ComboBox. Die vorhandenen Schalter und Textfelder liefen nie in diesen
+         Pfad, deshalb fiel es bis zum 31.08.2026 nicht auf. -->
+  </PropertyGroup>
+
+  <!-- WinForms wird nur fuer das Symbol im Infobereich gebraucht. Ohne diese Zeile
+       kollidieren Typnamen wie Application oder DragEventArgs mit denen von WPF. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+</Project>

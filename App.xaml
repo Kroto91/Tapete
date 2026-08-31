@@ -1,0 +1,231 @@
+<Application x:Class="Tapete.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <!-- Farben -->
+            <Color x:Key="cBg">#FF0F1115</Color>
+            <Color x:Key="cPanel">#FF171A21</Color>
+            <Color x:Key="cCard">#FF1C2029</Color>
+            <Color x:Key="cCardHover">#FF242936</Color>
+            <Color x:Key="cLine">#FF2A2F3A</Color>
+            <Color x:Key="cText">#FFE7EAF0</Color>
+            <Color x:Key="cDim">#FF8B93A5</Color>
+            <Color x:Key="cAccent">#FF6C8CFF</Color>
+
+            <SolidColorBrush x:Key="Bg" Color="{StaticResource cBg}" />
+            <SolidColorBrush x:Key="Panel" Color="{StaticResource cPanel}" />
+            <SolidColorBrush x:Key="Card" Color="{StaticResource cCard}" />
+            <SolidColorBrush x:Key="CardHover" Color="{StaticResource cCardHover}" />
+            <SolidColorBrush x:Key="Line" Color="{StaticResource cLine}" />
+            <SolidColorBrush x:Key="Text" Color="{StaticResource cText}" />
+            <SolidColorBrush x:Key="Dim" Color="{StaticResource cDim}" />
+            <SolidColorBrush x:Key="Accent" Color="{StaticResource cAccent}" />
+
+            <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+            <!-- Schlichter Knopf -->
+            <Style x:Key="Ghost" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Padding" Value="14,7" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="b" CornerRadius="8"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.4" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Betonter Knopf -->
+            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Ghost}">
+                <Setter Property="Foreground" Value="#FF0B0E14" />
+                <Setter Property="Background" Value="{StaticResource Accent}" />
+                <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="b" CornerRadius="8" Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="b" Property="Background" Value="#FF87A1FF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Fensterknopf oben rechts -->
+            <Style x:Key="Chrome" TargetType="Button">
+                <Setter Property="Width" Value="42" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Foreground" Value="{StaticResource Dim}" />
+                <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="b" Background="Transparent" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}" />
+                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Schmale Bildlaufleiste -->
+            <Style TargetType="ScrollBar">
+                <Setter Property="Width" Value="8" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border CornerRadius="4" Background="#FF333947" Margin="2,0" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" />
+                                </Track.DecreaseRepeatButton>
+                            </Track>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Kachel -->
+            <Style x:Key="Kachel" TargetType="Button">
+                <Setter Property="Width" Value="228" />
+                <Setter Property="Height" Value="140" />
+                <Setter Property="Margin" Value="0,0,14,14" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="rand" CornerRadius="12" Background="{StaticResource Card}"
+                                    BorderBrush="{StaticResource Line}" BorderThickness="1"
+                                    SnapsToDevicePixels="True">
+                                <Border CornerRadius="11" ClipToBounds="True">
+                                    <Grid>
+                                        <Image Source="{Binding Bild}" Stretch="UniformToFill" />
+
+                                        <!-- Platzhalter, solange kein Vorschaubild da ist -->
+                                        <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="26"
+                                                   Foreground="#FF3A4152"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Visibility="{Binding PlatzhalterSichtbar}" />
+
+                                        <Border VerticalAlignment="Bottom" Height="52">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#00000000" Offset="0" />
+                                                    <GradientStop Color="#E6000000" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+
+                                        <TextBlock Text="{Binding Name}" Foreground="White"
+                                                   FontFamily="{StaticResource UiFont}" FontSize="12.5"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Bottom" Margin="12,0,34,10" />
+
+                                        <!-- Punkt zeigt: laeuft gerade -->
+                                        <Ellipse x:Name="punkt" Width="9" Height="9" Fill="{StaticResource Accent}"
+                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                 Margin="0,0,12,12" Visibility="Collapsed" />
+                                    </Grid>
+                                </Border>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="rand" Property="BorderBrush" Value="#FF4A5266" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding Laeuft}" Value="True">
+                                    <Setter TargetName="rand" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="rand" Property="BorderThickness" Value="2" />
+                                    <Setter TargetName="punkt" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Schalter -->
+            <Style TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{StaticResource Dim}" />
+                <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+                <Setter Property="FontSize" Value="12.5" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <StackPanel Orientation="Horizontal" Background="Transparent">
+                                <Border x:Name="box" Width="32" Height="18" CornerRadius="9"
+                                        Background="#FF2A2F3A" VerticalAlignment="Center">
+                                    <Ellipse x:Name="knopf" Width="12" Height="12" Fill="#FF7A8296"
+                                             HorizontalAlignment="Left" Margin="3,0,0,0" />
+                                </Border>
+                                <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="box" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="knopf" Property="Fill" Value="White" />
+                                    <Setter TargetName="knopf" Property="HorizontalAlignment" Value="Right" />
+                                    <Setter TargetName="knopf" Property="Margin" Value="0,0,3,0" />
+                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
