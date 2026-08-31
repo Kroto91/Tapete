@@ -67,6 +67,35 @@ fällt beides auf null.
 
 Arbeitsspeicher: rund 90 MB für Tapete, rund 200 MB für mpv.
 
+## Zu große Videos werden angepasst
+
+Ist ein Video größer als der Bildschirm, auf dem es laufen soll, rechnet Tapete es einmalig
+auf dessen Größe herunter und spielt danach die kleinere Fassung. Das läuft von selbst im
+Hintergrund und dauert mit Hardware-Kodierung wenige Sekunden; solange spielt das Original
+weiter, danach schaltet Tapete kurz um.
+
+Gemessen am 31. August 2026 auf einer Radeon RX 7800 XT, jeweils bildschirmfüllend auf
+3440×1440, Mittel aus sechs Abtastungen:
+
+| Fassung | Zeichnen | Dekodieren |
+|---|---|---|
+| 3440×1440, 60 fps (Original) | 2,4 % | 28,0 % |
+| 1920×804, 60 fps (gerechnet) | 2,2 % | 9,4 % |
+| 1920×804, 30 fps (gerechnet) | 1,1 % | 4,8 % |
+
+Die Bildrate lässt Tapete unangetastet. Sie zu halbieren spart noch einmal gut das Doppelte,
+ist aber im Gegensatz zur Auflösung zu sehen: mehr Bildpunkte, als der Bildschirm hat, kann
+er ohnehin nicht darstellen, weniger Bilder je Sekunde dagegen schon.
+
+Kodiert wird mit derselben `mpv.exe`, die auch abspielt. Sie bringt libavcodec mit, ein
+zweites Programm ist dafür nicht nötig. Versucht werden nacheinander die Hardware-Encoder
+von AMD, Nvidia und Intel, dann MediaFoundation, zuletzt libx264 in Software; der erste,
+der eine brauchbare Datei liefert, gewinnt.
+
+Die gerechneten Fassungen liegen unter `%APPDATA%\Tapete\klein`. Der Ordner darf gelöscht
+werden, was gebraucht wird entsteht neu. Passt ein Video schon auf den Bildschirm, bleibt es
+unangetastet: auf einem 3440×1440-Schirm mit einem 3440×1440-Video passiert nichts.
+
 ## Wie es funktioniert
 
 Windows 11 ab Build 26200 nimmt in der alten Desktop-Ebene `WorkerW` kein fremdes

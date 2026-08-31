@@ -13,16 +13,31 @@ public partial class App : Application
     public Settings Einstellungen { get; private set; } = new();
     // Nur melden, was tatsaechlich spielt. Sonst zeigt die Statuszeile "Laeuft: x.mp4"
     // und die Kachel einen Punkt, obwohl der Aufbau fehlgeschlagen ist.
-    public string? AktuellesVideo => _wallpaper is { Laeuft: true } ? _wallpaper.VideoPfad : null;
+    //
+    // Gemeldet wird die Vorlage, nicht die tatsaechlich abgespielte Datei. Laeuft
+    // eine auf Bildschirmgroesse gerechnete Fassung, ist das eine andere Datei im
+    // Zwischenspeicher; hervorheben soll die Kachel aber das gewaehlte Video.
+    public string? AktuellesVideo => _wallpaper is { Laeuft: true } ? _original : null;
 
     private Hintergrund? _wallpaper;
     private MainWindow? _fenster;
     private Forms.NotifyIcon? _tray;
 
+    /// <summary>Das gewaehlte Video. Siehe AktuellesVideo.</summary>
+    private string? _original;
+
+    /// <summary>Damit nicht zwei Umrechnungen gleichzeitig laufen.</summary>
+    private bool _rechnet;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         Hintergrund.Notiz("OnStartup, Argumente: [" + string.Join(" ", e.Args) + "]");
+
+        var probe = Verkleinern.Selbstpruefung();
+        Hintergrund.Notiz(probe.Count == 0
+            ? "Rechenprobe Verkleinern: in Ordnung"
+            : "Rechenprobe Verkleinern FEHLER: " + string.Join("; ", probe));
 
         // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
         _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
@@ -100,12 +115,19 @@ public partial class App : Application
         if (!File.Exists(pfad)) { Hintergrund.Notiz("HintergrundSetzen: Datei fehlt, " + pfad); return; }
 
         HintergrundAus(merken: false);
+        _original = pfad;
+
+        // Die auf Bildschirmgroesse gerechnete Fassung nehmen, wenn es sie schon gibt.
+        // Sonst faengt es mit dem Original an und reicht sie nach: Kodieren dauert
+        // Sekunden bis Minuten und darf den Start nicht aufhalten.
+        var (bb, bh) = Verkleinern.Bildschirmmasse(Einstellungen.Bildschirm);
+        string abspielen = Verkleinern.Fertig(pfad, bb, bh) ?? pfad;
 
         // problem faengt die Meldung aus dem Konstruktor ab. Sie wird ganz zum Schluss
         // noch einmal gesetzt, weil StandAktualisieren() dieselbe Zeile beschreibt und
         // den Fehler sonst sofort wieder ueberdeckt.
         string? problem = null;
-        _wallpaper = new Hintergrund(pfad, text => { problem = text; _fenster?.FehlerZeigen(text); })
+        _wallpaper = new Hintergrund(abspielen, text => { problem = text; _fenster?.FehlerZeigen(text); })
         {
             BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren,
             Bildschirm = Einstellungen.Bildschirm
@@ -123,6 +145,39 @@ public partial class App : Application
         _fenster?.StandAktualisieren();
         TrayTextSetzen();
         if (problem is not null) _fenster?.FehlerZeigen(problem);
+
+        // Nur wenn wirklich das Original spielt. Lief schon die gerechnete Fassung,
+        // gibt es nichts zu tun.
+        if (_wallpaper is { Laeuft: true } && abspielen == pfad) VerkleinernAnstossen(pfad, bb, bh);
+    }
+
+    /// <summary>
+    /// Rechnet das Video im Hintergrund auf Bildschirmgroesse herunter und baut den
+    /// Hintergrund danach mit der kleinen Fassung neu auf. Je Video und Bildschirm-
+    /// groesse genau einmal, danach liegt die Datei im Zwischenspeicher.
+    ///
+    /// Der Neuaufbau ist ein kurzer Aussetzer im Bild. Der faellt einmal an, gegen
+    /// dauerhaft ein Drittel der Dekodierlast - gemessen, siehe Verkleinern.
+    /// </summary>
+    private void VerkleinernAnstossen(string pfad, int bb, int bh)
+    {
+        if (_rechnet) return;
+        _rechnet = true;
+
+        Task.Run(() =>
+        {
+            string? klein = null;
+            try { klein = Verkleinern.Erzeugen(pfad, bb, bh); }
+            catch (Exception e) { Hintergrund.Notiz($"Verkleinern warf {e.GetType().Name}: {e.Message}"); }
+
+            Dispatcher.Invoke(() =>
+            {
+                _rechnet = false;
+                // Nur, wenn immer noch dasselbe Video laeuft. In der Zwischenzeit kann
+                // laengst ein anderes gewaehlt worden sein.
+                if (klein is not null && _original == pfad) HintergrundNeuAufbauen();
+            });
+        });
     }
 
     public void HintergrundAus() => HintergrundAus(merken: true);
@@ -136,6 +191,7 @@ public partial class App : Application
         }
         if (merken)
         {
+            _original = null;
             Einstellungen.LetztesVideo = null;
             Einstellungen.Speichern();
         }
@@ -146,7 +202,9 @@ public partial class App : Application
     /// <summary>Setzt denselben Hintergrund neu, etwa nach einem Bildschirmwechsel.</summary>
     public void HintergrundNeuAufbauen()
     {
-        string? pfad = _wallpaper?.VideoPfad ?? Einstellungen.LetztesVideo;
+        // Die Vorlage, nicht die gerechnete Fassung. HintergrundSetzen sucht sich die
+        // passende Fassung selbst, und nach einem Bildschirmwechsel ist das eine andere.
+        string? pfad = _original ?? Einstellungen.LetztesVideo;
         if (!string.IsNullOrWhiteSpace(pfad) && File.Exists(pfad)) HintergrundSetzen(pfad);
     }
 
