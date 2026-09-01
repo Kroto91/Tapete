@@ -129,13 +129,24 @@ public sealed class Hintergrund : IDisposable
         var (vx, vy, vBreite, vHoehe) = Native.VirtualScreen();
         var flaechen = ZielFlaechen(vx, vy, vBreite, vHoehe);
 
+        // Die gewaehlte Einstellung gehoert mit ins Protokoll. Bei nur einem
+        // Bildschirm sieht die Zeile "Zielflaeche" fuer "jeder einzeln" genauso aus
+        // wie fuer einen namentlich gewaehlten Schirm; ohne diese Angabe liess sich
+        // aus dem Protokoll nicht ablesen, was eingestellt war.
+        string wahl = Bildschirm switch
+        {
+            "*" => "* (jeder Bildschirm einzeln)",
+            null or "" => "(leer, also Hauptbildschirm)",
+            _ => Bildschirm,
+        };
+
         // Ein Kindfenster kann nicht ueber seinen Vater hinausragen. Deckt die
         // Desktop-Ebene nur den Hauptbildschirm ab, bleibt der zweite Schirm leer,
         // egal welche Masse hier stehen. Deshalb steht die Ebene im Protokoll.
         if (Native.GetWindowRect(ziel, out var ebene))
             Notiz($"Desktop-Ebene {ebene.Right - ebene.Left}x{ebene.Bottom - ebene.Top} " +
                   $"bei {ebene.Left},{ebene.Top} | Gesamtflaeche {vBreite}x{vHoehe} bei {vx},{vy} " +
-                  $"| {flaechen.Count} Flaeche(n)");
+                  $"| Einstellung {wahl} | {flaechen.Count} Flaeche(n)");
 
         foreach (var (px, py, breite, hoehe) in flaechen)
             EinenStarten(mpv, ziel, px, py, breite, hoehe);
