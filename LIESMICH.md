@@ -52,7 +52,7 @@ Zwei Schalter unten:
 75 Endungen, unter anderem MP4, MKV, MOV, AVI, WMV, WebM, FLV, M2TS, MPEG, VOB,
 OGV, RMVB, 3GP, MXF und die rohen Ströme H.264 und H.265. Die Liste ist nicht
 geschätzt, sondern aus mpvs eigenem Installationsskript übernommen: alle Einträge,
-die dort als „video" registriert werden.
+die dort als „video“ registriert werden.
 
 Hardware-Dekodierung steht für H.264, HEVC, MPEG-2, VC-1, VP9, WMV3 und AV1 bereit,
 über D3D11VA, DXVA2 und Vulkan. Auf der Radeon RX 7800 XT greift `--hwdec=auto-safe`
@@ -166,7 +166,7 @@ dotnet publish Tapete.csproj -c Release -o fertig
 
 ## Autostart
 
-Der Schalter „Mit Windows starten" legt eine Verknüpfung im Autostart-Ordner an:
+Der Schalter „Mit Windows starten“ legt eine Verknüpfung im Autostart-Ordner an:
 
     C:\Users\<Name>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Tapete.lnk
 
@@ -192,7 +192,7 @@ herein. Zwei Folgefehler steckten dahinter: `StandAktualisieren()` überschrieb 
 Fehlerzeile sofort wieder, und `AktuellesVideo` meldete ein Video als laufend, obwohl
 der Aufbau gescheitert war.
 
-Der Schalter „Mit Windows starten" las den Run-Eintrag, während der Autostart längst
+Der Schalter „Mit Windows starten“ las den Run-Eintrag, während der Autostart längst
 über die Verknüpfung lief. Er stand auf aus, obwohl das Programm mitstartete.
 
 `LetztesVideo` wurde auch dann gespeichert, wenn nichts lief. Jetzt nur noch bei Erfolg.
@@ -204,7 +204,7 @@ Das Warten auf mpvs Fenster blockiert die Oberfläche. Ich hatte den Deckel erst
 acht auf drei Sekunden gesenkt und damit den Autostart zerschossen: Beim Anmelden am
 31.08.2026 wird `mpv.exe` mit ihren 115 MB kalt von der SSD geladen, während ein Dutzend
 anderer Autostart-Programme dieselbe Platte belegt. Drei Sekunden reichten nicht, der
-Zweig „kein Fenster" schlug zu, mpv wurde gleich wieder beendet und der Hintergrund
+Zweig „kein Fenster“ schlug zu, mpv wurde gleich wieder beendet und der Hintergrund
 blieb leer. Im Leerlauf mit warmem Dateicache steht dasselbe Fenster nach 241 ms — daher
 die falsche Einschätzung. Der Deckel liegt jetzt bei 30 Sekunden.
 
@@ -265,7 +265,7 @@ Anmelden den Grund nennt, gehört er an seiner Stelle behoben.
 
 ## Bildschirmwahl
 
-Unten im Fenster steht ein Auswahlfeld. Es listet „Alle Bildschirme" und danach jeden
+Unten im Fenster steht ein Auswahlfeld. Es listet „Alle Bildschirme“ und danach jeden
 angeschlossenen Monitor mit seiner Auflösung.
 
 Vorher gab es das nicht: Das Abspielfenster wurde immer auf die Gesamtfläche aller
@@ -310,10 +310,10 @@ Mit den zwölf Beispielvideos:
 
 Das ergibt `Tapete-Setup-1.0.0-mit-Videos.exe`, 668 MB, und braucht 42 statt 10
 Sekunden. Beim Installieren stehen dann zwei Umfänge zur Wahl, „Programm und
-Beispielvideos" oder „Nur das Programm".
+Beispielvideos“ oder „Nur das Programm“.
 
 Die Videos landen in `Videos\Tapeten`. Inno Setup kennt keine Konstante für diesen
-Ordner — `{uservideos}` gibt es nicht, ausprobiert und mit „Unknown constant"
+Ordner — `{uservideos}` gibt es nicht, ausprobiert und mit „Unknown constant“
 abgelehnt. Der Pfad kommt deshalb aus `Shell Folders` in der Registry, damit greift
 auch eine Umleitung, etwa durch OneDrive.
 
@@ -346,7 +346,7 @@ Fehlgriff hätte die Arbeit gelöscht.
 
 Nicht mitversioniert werden `bin`, `obj` und `fertig`. Der Ordner `fertig` enthält
 neben `Tapete.exe` auch `mpv.exe` mit 115 MB; beides lässt sich wiederherstellen,
-gehört aber nicht in die Geschichte. Woher mpv kommt, steht oben unter „Starten".
+gehört aber nicht in die Geschichte. Woher mpv kommt, steht oben unter „Starten“.
 
 `core.autocrlf` ist auf `false` gesetzt. Ohne das schreibt Git unter Windows die
 Zeilenenden auf CRLF um, und jede kleine Änderung sieht im Vergleich aus, als wäre
@@ -361,14 +361,14 @@ Ausblenden ist ersatzlos entfallen.
 Abgespielt wird über mpv statt über WPF. Ein WPF-Fenster saß an der richtigen Stelle
 und wurde trotzdem nicht gezeichnet.
 
-Der Schalter heißt jetzt „Pause wenn verdeckt" und prüft die tatsächlich freie
+Der Schalter heißt jetzt „Pause wenn verdeckt“ und prüft die tatsächlich freie
 Fläche statt nur das Vordergrundfenster.
 
 Kacheln zeigen den Dateinamen mit Endung. Vorher waren `probe.mkv` und `probe.webm`
-beide nur „probe".
+beide nur „probe“.
 
 Behoben: Das Setzen der Schalter im Konstruktor löste deren Ereignis aus und
-speicherte sofort zurück. Dadurch stand „Pause wenn verdeckt" stillschweigend auf
+speicherte sofort zurück. Dadurch stand „Pause wenn verdeckt“ stillschweigend auf
 aus, und der Autostart-Eintrag konnte sich von selbst setzen. Ein `_laedt`-Wächter
 in `MainWindow` hält die Ereignisse während des Ladens still.
 

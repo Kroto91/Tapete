@@ -11,8 +11,12 @@
 #define Version   "1.2.0"
 #define Autor     "Timm-Fabian Krotofil"
 #define Exe       "Tapete.exe"
-#define Quelle    "E:\Claude\Tapete\fertig"
-#define Videos    "C:\Users\timmf\Videos\Tapeten"
+; Beide Pfade werden beim Uebersetzen ausgerechnet, nicht fest eingetragen.
+; Vorher stand hier der Benutzername des Entwicklers und sein Laufwerk; in
+; einem oeffentlichen Repository hat beides nichts zu suchen, und ein fremder
+; Rechner haette damit ohnehin nicht bauen koennen.
+#define Quelle    SourcePath + "..\fertig"
+#define Videos    GetEnv("USERPROFILE") + "\Videos\Tapeten"
 
 ; Mit  ISCC /DMitVideos Tapete.iss  kommen die zwoelf Beispielvideos mit ins Setup.
 ; Ohne bleibt es beim Programm allein, rund 95 statt 640 MB.
