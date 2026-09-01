@@ -83,9 +83,15 @@ nichts außer einem kurzen Aussetzer im Bild.
 Das geht nur ohne Nachfrage, weil die Installation unter `%LOCALAPPDATA%\Programs\Tapete`
 liegt und deshalb keine Administratorrechte braucht.
 
-Ist das Fenster offen, erscheint zusätzlich der Knopf „Neu: x.y.z“. Wer ihn drückt,
-bekommt den Installer mit Assistent zu sehen. Klappt die Abfrage nicht, etwa ohne Netz,
-bleibt der Knopf weg und es kommt keine Meldung.
+In der Titelzeile steht links die laufende Fassung, daneben der Knopf „Nach Aktualisierung
+suchen“. Er fragt sofort nach und antwortet in einem kleinen Fenster. Drei Antworten sind
+möglich, und die dritte ist der Grund für die Unterscheidung: Es gibt nichts Neues, es gibt
+eine neuere Fassung, oder die Abfrage hat nicht geklappt. Ein gescheiterter Versuch darf
+nicht als „alles aktuell“ durchgehen.
+
+Liegt etwas Neues vor, erscheint unten rechts zusätzlich der Knopf „Neu: x.y.z“. Wer ihn
+drückt, bekommt den Installer mit Assistent zu sehen. Ohne Netz bleibt er weg und es kommt
+keine Meldung.
 
 Geht eine Aktualisierung nicht durch, wird dieselbe Fassung nicht von allein ein zweites
 Mal versucht; sonst lüde Tapete bei jedem Start 95 MB für nichts. Der Knopf bleibt.

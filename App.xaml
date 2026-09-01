@@ -82,6 +82,13 @@
                 </Setter>
             </Style>
 
+            <!-- Kleiner Knopf fuer die Titelzeile, dort sind nur 36 Punkte Hoehe -->
+            <Style x:Key="Zeile" TargetType="Button" BasedOn="{StaticResource Ghost}">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Padding" Value="10,3" />
+                <Setter Property="Foreground" Value="{StaticResource Dim}" />
+            </Style>
+
             <!-- Fensterknopf oben rechts -->
             <Style x:Key="Chrome" TargetType="Button">
                 <Setter Property="Width" Value="42" />

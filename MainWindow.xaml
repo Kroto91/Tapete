@@ -29,8 +29,11 @@
         <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitelZiehen">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                 <Ellipse Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Text="Tapete" Foreground="{StaticResource Dim}" FontSize="12"
+                <TextBlock x:Name="TitelText" Text="Tapete" Foreground="{StaticResource Dim}" FontSize="12"
                            Margin="9,0,0,0" VerticalAlignment="Center" />
+                <Button x:Name="SucheKnopf" Style="{StaticResource Zeile}" Content="Nach Aktualisierung suchen"
+                        Click="SucheGeklickt" Margin="14,0,0,0" VerticalAlignment="Center"
+                        ToolTip="Fragt bei GitHub nach, ob eine neuere Fassung vorliegt." />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,1,4,0">
                 <Button Style="{StaticResource Chrome}" Content="&#xE921;" Click="Minimieren"

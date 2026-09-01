@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         BildschirmeFuellen();
         PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
         BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
+        TitelText.Text = $"Tapete {Aktualisierung.Eigene}";
         AutostartSchalter.IsChecked = Settings.Autostart;
 
         DragEnter += (_, e) => { if (HatVideos(e)) ZiehFlaeche.Visibility = Visibility.Visible; };
@@ -267,6 +268,40 @@ public partial class MainWindow : Window
         if (Programm.Neuigkeit is null) return;
         UpdateKnopf.Content = $"Neu: {Programm.Neuigkeit.Version}";
         UpdateKnopf.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Der Knopf in der Titelzeile. Fragt nach und sagt, was herauskam.
+    ///
+    /// Drei Antworten, nicht zwei: Eine gescheiterte Abfrage darf nicht als
+    /// "alles aktuell" durchgehen.
+    /// </summary>
+    private async void SucheGeklickt(object sender, RoutedEventArgs e)
+    {
+        object vorher = SucheKnopf.Content;
+        SucheKnopf.IsEnabled = false;
+        SucheKnopf.Content = "sucht ...";
+
+        var ergebnis = await Programm.AktualisierungPruefen();
+
+        SucheKnopf.Content = vorher;
+        SucheKnopf.IsEnabled = true;
+
+        if (ergebnis.Fehler is not null)
+            MessageBox.Show(this,
+                "Die Abfrage bei GitHub hat nicht geklappt. Ob es eine neuere Fassung "
+                + "gibt, ist damit offen.\n\n" + ergebnis.Fehler,
+                "Nach Aktualisierung gesucht", MessageBoxButton.OK, MessageBoxImage.Warning);
+        else if (ergebnis.Neu is null)
+            MessageBox.Show(this,
+                $"Tapete {Aktualisierung.Eigene} ist die neueste Fassung.",
+                "Nach Aktualisierung gesucht", MessageBoxButton.OK, MessageBoxImage.Information);
+        else
+            MessageBox.Show(this,
+                $"Es gibt eine neuere Fassung: {ergebnis.Neu.Version}.\n\n"
+                + $"Der Knopf \u201eNeu: {ergebnis.Neu.Version}\u201c unten rechts lädt sie "
+                + "und startet die Installation.",
+                "Nach Aktualisierung gesucht", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>

@@ -9,6 +9,15 @@ namespace Tapete;
 internal sealed record Neuigkeit(Version Version, string Titel, string SetupUrl, string Seite);
 
 /// <summary>
+/// Was bei einer Suche herauskam. Beide Felder null heisst: alles aktuell.
+///
+/// Die Unterscheidung ist noetig, seit der Nutzer selbst nach Aktualisierungen
+/// fragen kann. Ohne sie meldete der Knopf "Sie haben die neueste Fassung" auch
+/// dann, wenn nur das Netz weg war.
+/// </summary>
+internal sealed record Pruefung(Neuigkeit? Neu, string? Fehler);
+
+/// <summary>
 /// Sucht neue Fassungen ueber die Releases von GitHub und startet das Setup.
 ///
 /// Absichtlich ohne Bibliothek: HttpClient und System.Text.Json stecken beide in
@@ -59,9 +68,9 @@ internal static class Aktualisierung
     }
 
     /// <summary>Fragt die neueste Veroeffentlichung ab. Null heisst: nichts Neues.</summary>
-    internal static async Task<Neuigkeit?> Suchen()
+    internal static async Task<Pruefung> Suchen()
     {
-        if (!Eingerichtet) return null;
+        if (!Eingerichtet) return new Pruefung(null, "Es ist kein Repository eingetragen.");
         try
         {
             string url = $"https://api.github.com/repos/{Besitzer}/{Ablage}/releases/latest";
@@ -69,12 +78,13 @@ internal static class Aktualisierung
             var w = doc.RootElement;
 
             string etikett = w.GetProperty("tag_name").GetString() ?? "";
-            if (!Version.TryParse(etikett.TrimStart('v', 'V'), out var gefunden)) return null;
+            if (!Version.TryParse(etikett.TrimStart('v', 'V'), out var gefunden))
+                return new Pruefung(null, $"Die Fassungsnummer \"{etikett}\" ist nicht zu lesen.");
             gefunden = Dreistellig(gefunden);
             if (gefunden <= Eigene)
             {
                 Hintergrund.Notiz($"Aktualisierung: {gefunden} ist nicht neuer als {Eigene}");
-                return null;
+                return new Pruefung(null, null);
             }
 
             // Die kleine Fassung nehmen. Die grosse traegt "Videos" im Namen und
@@ -93,19 +103,19 @@ internal static class Aktualisierung
             if (setup is null)
             {
                 Hintergrund.Notiz($"Aktualisierung: {etikett} hat kein Setup ohne Videos");
-                return null;
+                return new Pruefung(null, $"Die Veroeffentlichung {etikett} hat kein Setup.");
             }
 
             Hintergrund.Notiz($"Aktualisierung: {gefunden} gefunden, eigene {Eigene}");
-            return new Neuigkeit(gefunden,
+            return new Pruefung(new Neuigkeit(gefunden,
                 w.GetProperty("name").GetString() ?? etikett,
                 setup,
-                w.GetProperty("html_url").GetString() ?? "");
+                w.GetProperty("html_url").GetString() ?? ""), null);
         }
         catch (Exception e)
         {
             Hintergrund.Notiz($"Aktualisierung: {e.GetType().Name}: {e.Message}");
-            return null;
+            return new Pruefung(null, e.Message);
         }
     }
 

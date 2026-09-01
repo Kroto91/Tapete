@@ -178,14 +178,13 @@ public partial class App : Application
     /// </summary>
     private async Task NachAktualisierungSehen()
     {
-        Neuigkeit = await Aktualisierung.Suchen();
-        if (Neuigkeit is null) return;
-        NeuigkeitGefunden?.Invoke();
+        var neu = (await AktualisierungPruefen()).Neu;
+        if (neu is null) return;
 
         // Zweimal dieselbe Fassung nicht von selbst versuchen. Geht eine
         // Aktualisierung nicht durch, laedt Tapete sonst bei jedem Start
         // 95 MB und beendet sich anschliessend fuer nichts.
-        string kennung = Neuigkeit.Version.ToString();
+        string kennung = neu.Version.ToString();
         if (Einstellungen.AktualisierungVersucht == kennung)
         {
             Hintergrund.Notiz($"Aktualisierung: {kennung} war schon einmal dran, nur der Knopf");
@@ -194,7 +193,7 @@ public partial class App : Application
         Einstellungen.AktualisierungVersucht = kennung;
         Einstellungen.Speichern();
 
-        string? fehler = await Aktualisierung.HolenUndStarten(Neuigkeit, still: true);
+        string? fehler = await Aktualisierung.HolenUndStarten(neu, still: true);
         if (fehler is not null) return;
 
         // Dem Installer Zeit geben, sich in den Temp-Ordner zu kopieren, danach
@@ -204,6 +203,20 @@ public partial class App : Application
         await Task.Delay(2000);
         Hintergrund.Notiz("Aktualisierung: beende mich fuer den Installer");
         Beenden();
+    }
+
+    /// <summary>
+    /// Fragt bei GitHub nach und merkt sich das Ergebnis. Auch vom Knopf in der
+    /// Titelzeile aufgerufen, deshalb kommt das ganze Ergebnis zurueck und nicht
+    /// nur die Neuigkeit: Das Fenster muss "alles aktuell" von "Abfrage
+    /// gescheitert" unterscheiden koennen.
+    /// </summary>
+    internal async Task<Pruefung> AktualisierungPruefen()
+    {
+        var ergebnis = await Aktualisierung.Suchen();
+        Neuigkeit = ergebnis.Neu;
+        if (ergebnis.Neu is not null) NeuigkeitGefunden?.Invoke();
+        return ergebnis;
     }
 
     /// <summary>
