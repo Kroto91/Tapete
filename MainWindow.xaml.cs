@@ -85,9 +85,16 @@ public partial class MainWindow : Window
             string.Equals(i.Pfad, aktiv, StringComparison.OrdinalIgnoreCase);
 
         AusKnopf.IsEnabled = aktiv is not null;
-        Status.Text = aktiv is null
-            ? $"Nichts aktiv · {_items.Count} Video{(_items.Count == 1 ? "" : "s")} im Ordner"
-            : $"Läuft: {Path.GetFileName(aktiv)}";
+
+        // Die Aufschrift sagt, was ein Klick tut, nicht wie der Zustand heisst.
+        bool spiel = Programm.Spielmodus;
+        SpielKnopf.Content = spiel ? "Spielmodus beenden" : "Spielmodus";
+
+        Status.Text = spiel
+            ? "Spielmodus · der Abspieler ist beendet"
+            : aktiv is null
+                ? $"Nichts aktiv · {_items.Count} Video{(_items.Count == 1 ? "" : "s")} im Ordner"
+                : $"Läuft: {Path.GetFileName(aktiv)}";
     }
 
     public void FehlerZeigen(string text) => Status.Text = "Geht nicht: " + text;
@@ -101,6 +108,9 @@ public partial class MainWindow : Window
     }
 
     private void Ausschalten(object sender, RoutedEventArgs e) => Programm.HintergrundAus();
+
+    private void SpielmodusGeklickt(object sender, RoutedEventArgs e) =>
+        Programm.Spielmodus = !Programm.Spielmodus;
 
     private void OrdnerOeffnen(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Settings.VideoOrdner}\"") { UseShellExecute = true });

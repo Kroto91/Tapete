@@ -11,6 +11,13 @@ public sealed class Settings
     public bool BeiVollbildPausieren { get; set; } = true;
 
     /// <summary>
+    /// Spielmodus. Bleibt ueber einen Neustart hinweg stehen: wer ihn abends
+    /// einschaltet und den Rechner neu startet, will morgens nicht ueberrascht
+    /// werden, dass er sich von selbst geloest hat.
+    /// </summary>
+    public bool Spielmodus { get; set; }
+
+    /// <summary>
     /// Auf welchen Bildschirm das Video gehoert. Geraetename wie "\.\DISPLAY1",
     /// oder "*" fuer alle zusammen. Leer heisst Hauptbildschirm.
     ///

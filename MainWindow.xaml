@@ -49,6 +49,9 @@
                            Margin="0,3,0,0" Text="Ein Video anklicken, mehr ist nicht nötig." />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="SpielKnopf" Style="{StaticResource Ghost}" Content="Spielmodus"
+                        Click="SpielmodusGeklickt" Margin="0,0,8,0"
+                        ToolTip="Beendet den Abspieler ganz, nicht nur angehalten. Auch über das Symbol neben der Uhr erreichbar." />
                 <Button x:Name="AusKnopf" Style="{StaticResource Ghost}" Content="Aus"
                         Click="Ausschalten" IsEnabled="False" Margin="0,0,8,0" />
                 <Button Style="{StaticResource Ghost}" Content="Ordner" Click="OrdnerOeffnen" Margin="0,0,8,0"

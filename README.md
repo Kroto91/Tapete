@@ -36,6 +36,23 @@ Fenster nebeneinander lösen die Pause also aus.
 „Mit Windows starten“ legt eine Verknüpfung im Autostart-Ordner an. Tapete startet
 dann ohne Fenster und setzt den zuletzt gewählten Hintergrund.
 
+## Spielmodus
+
+Der Knopf „Spielmodus“ oben im Fenster beendet den Abspieler ganz. Nicht angehalten,
+sondern beendet: der Prozess verschwindet samt seiner rund 200 MB Arbeitsspeicher und seiner
+Dekodiersitzung auf der Grafikkarte. Ein zweiter Klick holt dasselbe Video zurück.
+
+Schneller geht es über das Symbol neben der Uhr. Rechtsklick, „Spielmodus“ anklicken. Dafür
+muss das Fenster nicht offen sein, und wer gleich spielen will, hat es nicht offen.
+
+Der Schalter „Pause wenn verdeckt“ macht etwas Ähnliches, aber nicht dasselbe. Er hält das
+Video an, solange ein Fenster den Desktop verdeckt, und mpv läuft dabei weiter. Bei einem
+Spiel im randlosen Fenster, oder einem auf dem zweiten Monitor, bleibt ein Stück Desktop
+sichtbar; dann greift die Pause gar nicht.
+
+Die Einstellung bleibt über einen Neustart hinweg stehen. Steht der Spielmodus beim Start auf
+an, bleibt der Hintergrund aus, bis er wieder abgeschaltet wird.
+
 ## Aktualisierungen
 
 Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung vorliegt. Wenn ja,

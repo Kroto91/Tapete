@@ -22,6 +22,7 @@ public partial class App : Application
     private Hintergrund? _wallpaper;
     private MainWindow? _fenster;
     private Forms.NotifyIcon? _tray;
+    private Forms.ToolStripMenuItem? _spielEintrag;
 
     /// <summary>Das gewaehlte Video. Siehe AktuellesVideo.</summary>
     private string? _original;
@@ -57,6 +58,13 @@ public partial class App : Application
         if (!versteckt) _fenster.Show();
 
         // Zuletzt gewaehltes Video wieder anwerfen.
+        if (Einstellungen.Spielmodus)
+        {
+            Hintergrund.Notiz("Spielmodus war zuletzt an, der Hintergrund bleibt aus");
+            SpielmodusAnzeigen();
+            return;
+        }
+
         bool gesetzt = !string.IsNullOrWhiteSpace(Einstellungen.LetztesVideo);
         bool da = gesetzt && File.Exists(Einstellungen.LetztesVideo);
         Hintergrund.Notiz($"Startvideo: gesetzt={gesetzt} vorhanden={da}");
@@ -110,9 +118,55 @@ public partial class App : Application
 
     // ---------- Hintergrund ----------
 
+    /// <summary>
+    /// Spielmodus. Anders als "Pause wenn verdeckt" wird mpv nicht angehalten,
+    /// sondern beendet: der Prozess ist weg, samt seiner rund 200 MB und seiner
+    /// Dekodiersitzung auf der Grafikkarte.
+    ///
+    /// Warum beides nebeneinander steht: Die Pause greift nur, solange der Desktop
+    /// wirklich verdeckt ist. Ein Spiel im randlosen Fenster, oder eines auf dem
+    /// zweiten Monitor, laesst ein Stueck Desktop sichtbar - dann laeuft das Video
+    /// weiter. Der Spielmodus fragt nicht, er beendet.
+    /// </summary>
+    public bool Spielmodus
+    {
+        get => Einstellungen.Spielmodus;
+        set
+        {
+            if (Einstellungen.Spielmodus == value) return;
+            Einstellungen.Spielmodus = value;
+            Einstellungen.Speichern();
+            Hintergrund.Notiz("Spielmodus: " + (value ? "an" : "aus"));
+
+            // merken: false laesst _original stehen, damit dasselbe Video zurueckkommt.
+            if (value) HintergrundAus(merken: false);
+            else HintergrundNeuAufbauen();
+
+            SpielmodusAnzeigen();
+        }
+    }
+
+    private void SpielmodusAnzeigen()
+    {
+        if (_spielEintrag is not null) _spielEintrag.Checked = Einstellungen.Spielmodus;
+        _fenster?.StandAktualisieren();
+        TrayTextSetzen();
+    }
+
     public void HintergrundSetzen(string pfad)
     {
         if (!File.Exists(pfad)) { Hintergrund.Notiz("HintergrundSetzen: Datei fehlt, " + pfad); return; }
+
+        // Eine angeklickte Kachel heisst: zeig mir das jetzt. Der Spielmodus endet
+        // damit - aber ohne den Umweg ueber HintergrundNeuAufbauen, denn gebaut wird
+        // gleich hier unten. Sonst liefe der Aufbau zweimal.
+        if (Einstellungen.Spielmodus)
+        {
+            Einstellungen.Spielmodus = false;
+            Einstellungen.Speichern();
+            Hintergrund.Notiz("Spielmodus: aus, weil ein Video gewaehlt wurde");
+            SpielmodusAnzeigen();
+        }
 
         HintergrundAus(merken: false);
         _original = pfad;
@@ -219,6 +273,15 @@ public partial class App : Application
     {
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Fenster anzeigen", null, (_, _) => FensterZeigen());
+
+        // Der eigentliche Weg zum Spielmodus: Rechtsklick neben der Uhr, ein Klick.
+        // Dafuer muss das Fenster nicht geoeffnet werden - und wer gleich spielen
+        // will, hat es nicht offen.
+        _spielEintrag = new Forms.ToolStripMenuItem("Spielmodus", null,
+            (_, _) => Spielmodus = !Spielmodus)
+        { Checked = Einstellungen.Spielmodus };
+        menu.Items.Add(_spielEintrag);
+
         menu.Items.Add("Hintergrund aus", null, (_, _) => HintergrundAus());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Beenden", null, (_, _) => Beenden());
@@ -251,8 +314,8 @@ public partial class App : Application
     private void TrayTextSetzen()
     {
         if (_tray is null) return;
-        string t = AktuellesVideo is null
-            ? "Tapete – aus"
+        string t = Einstellungen.Spielmodus ? "Tapete – Spielmodus"
+            : AktuellesVideo is null ? "Tapete – aus"
             : "Tapete – " + Path.GetFileName(AktuellesVideo);
         _tray.Text = t.Length > 63 ? t[..60] + "..." : t;   // Windows erlaubt nur 63 Zeichen
     }
