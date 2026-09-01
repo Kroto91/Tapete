@@ -32,6 +32,9 @@ internal static class Native
     internal static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
     [DllImport("user32.dll", SetLastError = true)]
+    internal static extern IntPtr GetParent(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
     internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
     [DllImport("user32.dll", SetLastError = true)]

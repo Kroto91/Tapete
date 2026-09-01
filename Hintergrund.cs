@@ -190,12 +190,27 @@ public sealed class Hintergrund : IDisposable
 
         Native.SetParent(fenster, ziel);
         // Hinter die Symbol-Ebene, damit die Symbole sichtbar und klickbar bleiben.
-        // Auf dem alten Weg ueber WorkerW gibt es keine Geschwister, dort ist der Anker 0.
-        IntPtr anker = Native.BrauchtProgman() ? Native.FindDefView() : IntPtr.Zero;
+        //
+        // Der Anker haengt am Fensterbaum, nicht am Windows-Build. Zwei Fallen:
+        // SetWindowPos ignoriert einen Anker, der kein Geschwister ist, und ein
+        // Anker von 0 heisst HWND_TOP, also VOR die Symbole. Beides endete am
+        // 01.09.2026 bei einem Tester damit, dass die Symbole verdeckt waren und
+        // sich nichts mehr auf dem Desktop anklicken liess.
+        //
+        // Bleibt nur HWND_BOTTOM, kann das Video hinter dem statischen
+        // Hintergrundbild landen und ist dann unsichtbar. Das ist der bessere
+        // Fehlerfall: ein unsichtbares Video sieht man, ein blockierter Desktop
+        // kostet den Tester den Feierabend. Welcher Fall eintrat, sagt die Notiz.
+        IntPtr defView = Native.FindDefView();
+        bool geschwister = defView != IntPtr.Zero && Native.GetParent(defView) == ziel;
+        IntPtr anker = geschwister ? defView : Native.HWND_BOTTOM;
         // Koordinaten zaehlen ab der linken oberen Ecke der Gesamtflaeche, nicht ab 0,0
         // des Hauptbildschirms. Bei einem Monitor links vom Hauptbildschirm ist vx negativ.
-        Native.SetWindowPos(fenster, anker, px, py, breite, hoehe,
+        bool gesetzt = Native.SetWindowPos(fenster, anker, px, py, breite, hoehe,
             Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW);
+        Notiz($"Z-Anker: Build {Environment.OSVersion.Version.Build}, DefView {defView}, " +
+              $"Geschwister {geschwister}, benutzt {(geschwister ? "DefView" : "HWND_BOTTOM")}, " +
+              $"SetWindowPos {gesetzt}");
         Laeuft = true;
         Notiz($"Aufbau geglueckt, mpv PID {_mpv.Id}, Fenster {fenster}");
     }
