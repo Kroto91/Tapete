@@ -79,14 +79,27 @@ internal static class Verkleinern
 
     /// <summary>
     /// Masse der Flaeche, auf der gespielt wird. Dieselbe Wahl wie in
-    /// Hintergrund.ZielFlaeche: "*" heisst alle Bildschirme zusammen, sonst der
+    /// Hintergrund.ZielFlaechen: "*" heisst je Bildschirm einzeln, sonst der
     /// benannte, und ohne Wahl der Hauptbildschirm.
+    ///
+    /// Bei "*" zaehlt der groesste Bildschirm, nicht die Gesamtflaeche. Seit ein
+    /// Video je Schirm laeuft, wuerde die Gesamtflaeche eine viel zu breite Fassung
+    /// erzeugen, von der jeder einzelne Schirm den Grossteil wegschneidet.
+    ///
+    /// ponytail: eine gemeinsame Fassung nach dem groessten Schirm, nicht eine je
+    /// Schirm. Der kleinere rechnet beim Abspielen herunter. Eine Datei je Groesse
+    /// erst, wenn das auf dem kleinen Schirm messbar Last kostet.
     /// </summary>
     internal static (int Breite, int Hoehe) Bildschirmmasse(string? bildschirm)
     {
-        if (bildschirm != "*")
+        var alle = Native.Bildschirme();
+        if (bildschirm == "*")
         {
-            var alle = Native.Bildschirme();
+            var groesster = alle.OrderByDescending(s => (long)s.Breite * s.Hoehe).FirstOrDefault();
+            if (groesster is not null) return (groesster.Breite, groesster.Hoehe);
+        }
+        else
+        {
             var b = alle.FirstOrDefault(s => s.Name == bildschirm) ?? alle.FirstOrDefault(s => s.Haupt);
             if (b is not null) return (b.Breite, b.Hoehe);
         }

@@ -22,9 +22,9 @@ namespace Tapete;
 public sealed class Hintergrund : IDisposable
 {
     private readonly DispatcherTimer _wacht = new() { Interval = TimeSpan.FromSeconds(2) };
-    private readonly string _pipe = "tapete_" + Guid.NewGuid().ToString("N")[..12];
     private readonly Action<string>? _fehler;
-    private Process? _mpv;
+    /// <summary>Ein Eintrag je belegtem Bildschirm. Bei "*" mehrere, sonst einer.</summary>
+    private readonly List<(Process Prozess, string Pipe)> _spieler = new();
     private bool _pausiert;
     private bool _entsorgt;
 
@@ -127,17 +127,32 @@ public sealed class Hintergrund : IDisposable
         }
 
         var (vx, vy, vBreite, vHoehe) = Native.VirtualScreen();
-        var (px, py, breite, hoehe) = ZielFlaeche(vx, vy, vBreite, vHoehe);
+        var flaechen = ZielFlaechen(vx, vy, vBreite, vHoehe);
 
         // Ein Kindfenster kann nicht ueber seinen Vater hinausragen. Deckt die
-        // Desktop-Ebene nur den Hauptbildschirm ab, laesst sich ueber alle
-        // Bildschirme nichts spannen, egal welche Masse hier stehen. Das ist
-        // ohne zweiten Monitor nicht nachzustellen, deshalb steht es im
-        // Protokoll: eine Zeile, die die Frage spaeter beantwortet.
+        // Desktop-Ebene nur den Hauptbildschirm ab, bleibt der zweite Schirm leer,
+        // egal welche Masse hier stehen. Deshalb steht die Ebene im Protokoll.
         if (Native.GetWindowRect(ziel, out var ebene))
             Notiz($"Desktop-Ebene {ebene.Right - ebene.Left}x{ebene.Bottom - ebene.Top} " +
                   $"bei {ebene.Left},{ebene.Top} | Gesamtflaeche {vBreite}x{vHoehe} bei {vx},{vy} " +
-                  $"| angefordert {breite}x{hoehe} bei {px},{py}");
+                  $"| {flaechen.Count} Flaeche(n)");
+
+        foreach (var (px, py, breite, hoehe) in flaechen)
+            EinenStarten(mpv, ziel, px, py, breite, hoehe);
+
+        Laeuft = _spieler.Count > 0;
+        if (!Laeuft) _fehler?.Invoke("Kein Bildschirm liess sich belegen.");
+    }
+
+    /// <summary>
+    /// Startet ein mpv fuer genau eine Flaeche und haengt es in die Desktop-Ebene.
+    /// Je Bildschirm ein eigener Prozess mit eigener Pipe: mpv kann ein Video nicht
+    /// auf zwei Fenster gleichzeitig legen, und ein einziges gespanntes Fenster war
+    /// genau das, was der Nutzer am 01.09.2026 nicht wollte.
+    /// </summary>
+    private void EinenStarten(string mpv, IntPtr ziel, int px, int py, int breite, int hoehe)
+    {
+        string pipe = "tapete_" + Guid.NewGuid().ToString("N")[..12];
 
         // Flags wie bei Lively 2.2.1.0, am 31.08.2026 aus dessen Kommandozeile gelesen.
         // Wichtig: kein Ton, Endlosschleife, keine Bedienelemente, keine Mausannahme,
@@ -169,22 +184,23 @@ public sealed class Hintergrund : IDisposable
             // 3,85 auf 1,31 Prozent. Am Dekodierer aendert es nichts, der haengt
             // an Aufloesung und Bildrate des Videos.
             "--profile=fast",
-            "--input-ipc-server=" + _pipe, "--geometry=-9999:0", VideoPfad,
+            "--input-ipc-server=" + pipe, "--geometry=-9999:0", VideoPfad,
         }) start.ArgumentList.Add(a);
 
-        try { _mpv = Process.Start(start); }
-        catch (Exception e) { Notiz("ABBRUCH: Process.Start warf " + e.GetType().Name + ": " + e.Message); _fehler?.Invoke(e.Message); return; }
-        if (_mpv is null) { Notiz("ABBRUCH: Process.Start lieferte null"); _fehler?.Invoke("mpv liess sich nicht starten."); return; }
+        Process? prozess;
+        try { prozess = Process.Start(start); }
+        catch (Exception e) { Notiz("ABBRUCH: Process.Start warf " + e.GetType().Name + ": " + e.Message); return; }
+        if (prozess is null) { Notiz("ABBRUCH: Process.Start lieferte null"); return; }
 
         const int maxWarte = 30000;
         var uhrAufbau = Stopwatch.StartNew();
-        IntPtr fenster = FensterAbwarten(_mpv.Id, maxWarte);
+        IntPtr fenster = FensterAbwarten(prozess.Id, maxWarte);
         Notiz($"Warten auf mpv-Fenster: {uhrAufbau.ElapsedMilliseconds} ms, gefunden: {fenster != IntPtr.Zero}");
         if (fenster == IntPtr.Zero)
         {
-            Notiz($"ABBRUCH: mpv (PID {_mpv.Id}) oeffnete in {maxWarte} ms kein Fenster. Prozess lebt noch: {!_mpv.HasExited}");
-            _fehler?.Invoke("mpv hat kein Fenster geoeffnet. Video beschaedigt?");
-            Abbauen();
+            Notiz($"ABBRUCH: mpv (PID {prozess.Id}) oeffnete in {maxWarte} ms kein Fenster. Prozess lebt noch: {!prozess.HasExited}");
+            try { prozess.Kill(entireProcessTree: true); } catch { }
+            prozess.Dispose();
             return;
         }
 
@@ -211,8 +227,9 @@ public sealed class Hintergrund : IDisposable
         Notiz($"Z-Anker: Build {Environment.OSVersion.Version.Build}, DefView {defView}, " +
               $"Geschwister {geschwister}, benutzt {(geschwister ? "DefView" : "HWND_BOTTOM")}, " +
               $"SetWindowPos {gesetzt}");
-        Laeuft = true;
-        Notiz($"Aufbau geglueckt, mpv PID {_mpv.Id}, Fenster {fenster}");
+        _spieler.Add((prozess, pipe));
+        Notiz($"Aufbau geglueckt, mpv PID {prozess.Id}, Fenster {fenster}, " +
+              $"{breite}x{hoehe} bei {px},{py}");
     }
 
     /// <summary>
@@ -220,12 +237,24 @@ public sealed class Hintergrund : IDisposable
     /// Leerer Name heisst Hauptbildschirm, "*" heisst alle zusammen. Ist der
     /// gemerkte Bildschirm abgesteckt, faellt es auf den Hauptbildschirm zurueck.
     /// </summary>
-    private (int X, int Y, int Breite, int Hoehe) ZielFlaeche(int vx, int vy, int vBreite, int vHoehe)
+    private List<(int X, int Y, int Breite, int Hoehe)> ZielFlaechen(int vx, int vy, int vBreite, int vHoehe)
     {
         if (Bildschirm == "*")
         {
-            Notiz("Zielflaeche: alle Bildschirme zusammen");
-            return (0, 0, vBreite, vHoehe);
+            var schirme = Native.Bildschirme();
+            if (schirme.Count == 0)
+            {
+                Notiz("Zielflaeche: kein Bildschirm gefunden, nehme die Gesamtflaeche");
+                return [(0, 0, vBreite, vHoehe)];
+            }
+            // Je Bildschirm eine eigene Flaeche, nicht ein Fenster ueber alle. Ein
+            // gespanntes Fenster zeigt das Video einmal quer ueber beide Schirme;
+            // gewollt ist es auf jedem Schirm einzeln und vollstaendig.
+            foreach (var s in schirme)
+                Notiz($"Zielflaeche: {s.Name} {s.Breite}x{s.Hoehe} bei {s.Flaeche.Left},{s.Flaeche.Top}");
+            return schirme
+                .Select(s => (s.Flaeche.Left - vx, s.Flaeche.Top - vy, s.Breite, s.Hoehe))
+                .ToList();
         }
 
         var alle = Native.Bildschirme();
@@ -233,10 +262,10 @@ public sealed class Hintergrund : IDisposable
         if (b is null)
         {
             Notiz("Zielflaeche: kein Bildschirm gefunden, nehme die Gesamtflaeche");
-            return (0, 0, vBreite, vHoehe);
+            return [(0, 0, vBreite, vHoehe)];
         }
         Notiz($"Zielflaeche: {b.Name} {b.Breite}x{b.Hoehe} bei {b.Flaeche.Left},{b.Flaeche.Top}");
-        return (b.Flaeche.Left - vx, b.Flaeche.Top - vy, b.Breite, b.Hoehe);
+        return [(b.Flaeche.Left - vx, b.Flaeche.Top - vy, b.Breite, b.Hoehe)];
     }
 
     /// <summary>
@@ -276,20 +305,23 @@ public sealed class Hintergrund : IDisposable
         return IntPtr.Zero;
     }
 
-    /// <summary>Schickt mpv einen Befehl ueber seine Named Pipe.</summary>
+    /// <summary>Schickt allen laufenden mpv denselben Befehl ueber ihre Named Pipe.</summary>
     private void AnMpv(string befehl)
     {
-        try
+        foreach (var (_, pipe) in _spieler)
         {
-            // InOut, nicht Out: mpv legt seine Pipe beidseitig an, eine reine
-            // Schreibverbindung laeuft in den Zeitablauf. Am 31.08.2026 gemessen.
-            using var rohr = new NamedPipeClientStream(".", _pipe, PipeDirection.InOut);
-            rohr.Connect(400);
-            byte[] b = Encoding.UTF8.GetBytes(befehl + "\n");
-            rohr.Write(b, 0, b.Length);
-            rohr.Flush();
+            try
+            {
+                // InOut, nicht Out: mpv legt seine Pipe beidseitig an, eine reine
+                // Schreibverbindung laeuft in den Zeitablauf. Am 31.08.2026 gemessen.
+                using var rohr = new NamedPipeClientStream(".", pipe, PipeDirection.InOut);
+                rohr.Connect(400);
+                byte[] b = Encoding.UTF8.GetBytes(befehl + "\n");
+                rohr.Write(b, 0, b.Length);
+                rohr.Flush();
+            }
+            catch { /* mpv weg oder noch nicht bereit - beim naechsten Takt wieder */ }
         }
-        catch { /* mpv weg oder noch nicht bereit - beim naechsten Takt wieder */ }
     }
 
     private void BildschirmGeaendert(object? sender, EventArgs e)
@@ -306,7 +338,7 @@ public sealed class Hintergrund : IDisposable
 
     private void SparenPruefen()
     {
-        if (_mpv is null || _mpv.HasExited) return;
+        if (_spieler.Count == 0 || _spieler.All(s => s.Prozess.HasExited)) return;
 
         bool soll = BeiVollbildPausieren && Native.DesktopVerdeckt();
         if (soll == _pausiert) return;
@@ -317,13 +349,16 @@ public sealed class Hintergrund : IDisposable
 
     private void Abbauen()
     {
-        try
+        foreach (var (prozess, _) in _spieler)
         {
-            if (_mpv is not null && !_mpv.HasExited) _mpv.Kill(entireProcessTree: true);
-            _mpv?.Dispose();
+            try
+            {
+                if (!prozess.HasExited) prozess.Kill(entireProcessTree: true);
+                prozess.Dispose();
+            }
+            catch { }
         }
-        catch { }
-        _mpv = null;
+        _spieler.Clear();
         _pausiert = false;
         Laeuft = false;
     }

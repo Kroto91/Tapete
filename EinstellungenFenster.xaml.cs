@@ -66,7 +66,7 @@ public partial class EinstellungenFenster : Window
     private void BildschirmeFuellen()
     {
         BildschirmWahl.Items.Clear();
-        BildschirmWahl.Items.Add(new BildschirmEintrag("*", "Alle Bildschirme"));
+        BildschirmWahl.Items.Add(new BildschirmEintrag("*", "Jeder Bildschirm einzeln"));
         foreach (var b in Native.Bildschirme())
             BildschirmWahl.Items.Add(new BildschirmEintrag(b.Name, b.ToString()));
 
