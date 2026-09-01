@@ -84,7 +84,7 @@ internal static class Native
     [DllImport("user32.dll")]
     internal static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc proc, IntPtr daten);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW", SetLastError = true)]
     internal static extern bool GetMonitorInfoEx(IntPtr hMonitor, ref MONITORINFOEX lpmi);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -284,13 +284,26 @@ internal static class Native
     internal static List<Bildschirm> Bildschirme()
     {
         var liste = new List<Bildschirm>();
+        int gemeldet = 0;
         EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr h, IntPtr hdc, ref RECT r, IntPtr d) =>
         {
+            gemeldet++;
             var mi = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
             if (GetMonitorInfoEx(h, ref mi))
                 liste.Add(new Bildschirm(mi.szDevice, mi.rcMonitor, (mi.dwFlags & 1) != 0));
+            else
+                // Ohne diese Zeile faellt ein Bildschirm spurlos aus der Liste, und
+                // hinterher sieht es aus, als haette Windows ihn nie gemeldet. Am
+                // 01.09.2026 gesucht, als bei einem Tester mit zwei Monitoren nur
+                // einer in der Auswahl stand.
+                Hintergrund.Notiz($"Bildschirm uebersprungen: GetMonitorInfoW scheiterte fuer "
+                    + $"{r.Right - r.Left}x{r.Bottom - r.Top} bei {r.Left},{r.Top}, "
+                    + $"Fehler {Marshal.GetLastWin32Error()}");
             return true;
         }, IntPtr.Zero);
+        // Nur melden, wenn etwas fehlt. Die Aufzaehlung laeuft bei jedem Aufbau.
+        if (gemeldet != liste.Count)
+            Hintergrund.Notiz($"Bildschirme: {gemeldet} von Windows gemeldet, {liste.Count} brauchbar");
         return liste;
     }
 

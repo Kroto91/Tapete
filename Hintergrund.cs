@@ -146,7 +146,8 @@ public sealed class Hintergrund : IDisposable
         if (Native.GetWindowRect(ziel, out var ebene))
             Notiz($"Desktop-Ebene {ebene.Right - ebene.Left}x{ebene.Bottom - ebene.Top} " +
                   $"bei {ebene.Left},{ebene.Top} | Gesamtflaeche {vBreite}x{vHoehe} bei {vx},{vy} " +
-                  $"| Einstellung {wahl} | {flaechen.Count} Flaeche(n)");
+                  $"| {Native.Bildschirme().Count} Bildschirm(e) | Einstellung {wahl} " +
+                  $"| {flaechen.Count} Flaeche(n)");
 
         foreach (var (px, py, breite, hoehe) in flaechen)
             EinenStarten(mpv, ziel, px, py, breite, hoehe);
