@@ -181,6 +181,17 @@ public partial class App : Application
         var neu = (await AktualisierungPruefen()).Neu;
         if (neu is null) return;
 
+        // Nur die installierte Kopie bringt sich selbst auf den neuen Stand.
+        // Sonst legte das Setup eine zweite Kopie an anderer Stelle an, und die
+        // hier laufende bliebe alt - samt Autostart, der auf sie zeigt.
+        if (!Aktualisierung.AusInstallation)
+        {
+            Hintergrund.Notiz("Aktualisierung: laeuft nicht aus der Installation ("
+                + (Aktualisierung.InstallationsOrdner ?? "keine eingetragen")
+                + "), deshalb nur der Knopf");
+            return;
+        }
+
         // Zweimal dieselbe Fassung nicht von selbst versuchen. Geht eine
         // Aktualisierung nicht durch, laedt Tapete sonst bei jedem Start
         // 95 MB und beendet sich anschliessend fuer nichts.
@@ -193,13 +204,24 @@ public partial class App : Application
         Einstellungen.AktualisierungVersucht = kennung;
         Einstellungen.Speichern();
 
+        // mpv zuerst wegnehmen. Es liegt im selben Ordner und haelt seine eigene
+        // Programmdatei fest; je weniger der Neustartmanager abraeumen muss,
+        // desto weniger kann daran scheitern.
+        HintergrundAus(merken: false);
+
         string? fehler = await Aktualisierung.HolenUndStarten(neu, still: true);
-        if (fehler is not null) return;
+        if (fehler is not null)
+        {
+            // Der Hintergrund war schon weg, also zurueckholen.
+            HintergrundNeuAufbauen();
+            return;
+        }
 
         // Dem Installer Zeit geben, sich in den Temp-Ordner zu kopieren, danach
         // den Weg frei machen: Eine laufende Programmdatei laesst sich nicht
-        // ersetzen. Gestartet wird Tapete danach vom Setup selbst, siehe den
-        // Abschnitt [Run] in Tapete.iss.
+        // ersetzen. Kommt der Neustartmanager zuerst, beendet er uns; dann laeuft
+        // das hier nie zu Ende, was in Ordnung ist. Gestartet wird Tapete danach
+        // vom Setup selbst, siehe den Abschnitt [Run] in Tapete.iss.
         await Task.Delay(2000);
         Hintergrund.Notiz("Aktualisierung: beende mich fuer den Installer");
         Beenden();

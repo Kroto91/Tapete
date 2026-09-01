@@ -312,6 +312,27 @@ public partial class MainWindow : Window
     {
         var n = Programm.Neuigkeit;
         if (n is null) return;
+
+        // Wer aus dem Bauordner heraus aktualisiert, bekommt eine zweite Kopie
+        // an anderer Stelle. Das ist kein Fehler, aber eine Ueberraschung, wenn
+        // man es nicht weiss.
+        if (!Aktualisierung.AusInstallation)
+        {
+            string hier = Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "unbekannt";
+            string dorthin = Aktualisierung.InstallationsOrdner
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                "Programs", "Tapete");
+            if (MessageBox.Show(this,
+                    $"Dieses Tapete l\u00e4uft aus\n{hier}\n\n"
+                    + $"Das Setup installiert nach\n{dorthin}\n\n"
+                    + "Danach gibt es zwei Kopien. Die hier laufende bleibt auf dem alten "
+                    + "Stand, und eine Autostart-Verkn\u00fcpfung zeigt weiter auf sie.\n\n"
+                    + "Trotzdem fortfahren?",
+                    "Nicht aus der Installation gestartet",
+                    MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
+                return;
+        }
+
         UpdateKnopf.IsEnabled = false;
         UpdateKnopf.Content = "Wird geladen...";
         string? fehler = await Aktualisierung.HolenUndStarten(n);

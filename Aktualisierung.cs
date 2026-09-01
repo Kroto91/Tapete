@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
+using Microsoft.Win32;
 
 namespace Tapete;
 
@@ -34,6 +35,55 @@ internal static class Aktualisierung
     internal const string Ablage = "Tapete";
 
     internal static bool Eingerichtet => Besitzer.Length > 0;
+
+    /// <summary>
+    /// Wo das Setup zuletzt hin installiert hat, oder null. Den Eintrag legt
+    /// Inno Setup selbst an; die Kennung stammt aus AppId in Tapete.iss.
+    /// </summary>
+    internal static string? InstallationsOrdner
+    {
+        get
+        {
+            try
+            {
+                using var k = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\"
+                    + "{7C4B1E2A-9D33-4F16-A8C5-2E0B6D41F9A3}_is1");
+                return k?.GetValue("InstallLocation") as string;
+            }
+            catch { return null; }
+        }
+    }
+
+    /// <summary>
+    /// Laeuft dieses Tapete aus der Installation?
+    ///
+    /// Wichtig fuer die Selbstaktualisierung: Das Setup installiert immer in den
+    /// Ordner, den es sich gemerkt hat. Laeuft Tapete woanders - etwa direkt aus
+    /// dem Bauordner, wie beim Entwickeln -, entstuende beim Aktualisieren eine
+    /// zweite Kopie an anderer Stelle, waehrend die laufende auf dem alten Stand
+    /// bliebe. Eine Autostart-Verknuepfung zeigte dann weiter auf die alte.
+    ///
+    /// Deshalb aktualisiert sich nur die installierte Kopie von selbst. Der Knopf
+    /// im Fenster bleibt fuer alle, fragt aber vorher nach.
+    /// </summary>
+    internal static bool AusInstallation
+    {
+        get
+        {
+            string? ordner = InstallationsOrdner;
+            string? eigener = Path.GetDirectoryName(Environment.ProcessPath ?? "");
+            if (string.IsNullOrEmpty(ordner) || string.IsNullOrEmpty(eigener)) return false;
+            try
+            {
+                return string.Equals(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(ordner)),
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(eigener)),
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+    }
 
     /// <summary>
     /// Eigene Fassung auf drei Stellen gebracht. Ohne das vergleicht sich das
@@ -162,7 +212,22 @@ internal static class Aktualisierung
             }
 
             var start = new ProcessStartInfo(ziel) { UseShellExecute = true };
-            if (still) start.Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART";
+            if (still)
+            {
+                // FORCECLOSEAPPLICATIONS ist noetig, nicht schmueckend. Der
+                // Windows-Neustartmanager schickt laufenden Programmen ein
+                // WM_CLOSE; Tapete faengt das ab und versteckt nur sein Fenster,
+                // damit "Fenster zu" nicht "Programm zu" heisst. Der Manager
+                // meldete deshalb "Some applications could not be shut down",
+                // und mit unterdrueckten Dialogen bricht Inno dann ab.
+                // Am 01.09.2026 im Inno-Protokoll nachgelesen, nicht geraten.
+                //
+                // NORESTARTAPPLICATIONS, weil das Setup Tapete am Ende ohnehin
+                // selbst wieder startet, siehe [Run] in Tapete.iss. Sonst kaeme
+                // es zweimal hoch.
+                start.Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART "
+                                + "/FORCECLOSEAPPLICATIONS /NORESTARTAPPLICATIONS";
+            }
             Process.Start(start);
             Hintergrund.Notiz("Aktualisierung: Installer gestartet" + (still ? " (still)" : ""));
             return null;
