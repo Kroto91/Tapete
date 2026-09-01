@@ -5,7 +5,7 @@ obj/
 
 # Der fertige Ordner enthaelt neben Tapete.exe auch mpv.exe mit 115 MB.
 # Beides ist erzeugt beziehungsweise geladen, gehoert also nicht in die Geschichte.
-# Woher mpv kommt, steht in LIESMICH.md.
+# Woher mpv kommt, steht in README.md.
 fertig/
 
 # Reste von Windows
@@ -16,8 +16,9 @@ desktop.ini
 # Kopie der Programmdateien fuer die Weitergabe, wird bei Bedarf neu gefuellt.
 weitergabe/
 
-# Reparaturskript fuer die echten Benutzereinstellungen, gehoert mit ins Archiv.
-!reparatur/
-
-# Setup-Skript gehoert mit ins Archiv, das Ergebnis nicht.
-!setup/
+# Werkstattnotizen und das Reparaturskript fuer den eigenen Rechner. Am
+# 01.09.2026 aus der Versionsverwaltung genommen: Das Skript schaltet fremde
+# Autostart-Eintraege ab und nennt die installierte Software beim Namen, die
+# Notizen beschreiben den Entwicklerrechner. Beides bleibt lokal liegen.
+reparatur/
+LIESMICH.md

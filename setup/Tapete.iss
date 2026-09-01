@@ -37,7 +37,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-OutputDir=E:\Claude
+OutputDir={#SourcePath}..\..
 #ifdef MitVideos
 OutputBaseFilename=Tapete-Setup-{#Version}-mit-Videos
 #else
@@ -46,7 +46,7 @@ OutputBaseFilename=Tapete-Setup-{#Version}
 UninstallDisplayIcon={app}\{#Exe}
 UninstallDisplayName={#Name} {#Version}
 WizardStyle=modern
-SetupIconFile=E:\Claude\Tapete\app.ico
+SetupIconFile={#SourcePath}..\app.ico
 
 ; Das Nutzlast besteht fast nur aus einer gepackten .NET-Datei und einem
 ; Videoabspieler - beides laesst sich kaum weiter verdichten. Starke
@@ -80,7 +80,7 @@ Name: "autostart";   Description: "Tapete mit Windows starten (ohne Fenster)"; F
 Source: "{#Quelle}\{#Exe}";              DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Quelle}\mpv.exe";             DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Quelle}\d3dcompiler_43.dll";  DestDir: "{app}"; Flags: ignoreversion
-Source: "E:\Claude\Tapete\weitergabe\LIESMICH.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "{#SourcePath}LIESMICH.txt";     DestDir: "{app}"; Flags: ignoreversion isreadme
 #ifdef MitVideos
 ; onlyifdoesntexist: eine gleichnamige eigene Datei des Nutzers wird nicht ueberschrieben.
 ; uninsneveruninstall: beim Deinstallieren bleiben sie liegen, es sind Videodateien

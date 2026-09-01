@@ -13,6 +13,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $wurzel = Split-Path $PSScriptRoot -Parent
 $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+# Dorthin legt das Setup-Skript seine Ergebnisse, siehe OutputDir in Tapete.iss.
+$ablage = Split-Path $wurzel -Parent
 
 if (-not (Test-Path $iscc)) { throw "Inno Setup fehlt: $iscc" }
 
@@ -72,13 +74,13 @@ if ($LASTEXITCODE -ne 0) { throw "ISCC mit Videos ist fehlgeschlagen" }
 
 Write-Host ""
 Write-Host "  Fertig:"
-Get-ChildItem "E:\Claude\Tapete-Setup-$Version*.exe" |
+Get-ChildItem (Join-Path $ablage "Tapete-Setup-$Version*.exe") |
     ForEach-Object { Write-Host ("     {0,-44} {1,6:N1} MB" -f $_.Name, ($_.Length / 1MB)) }
 
 Write-Host ""
 Write-Host "  Naechste Schritte:"
 Write-Host "    git add -A; git commit -m `"Fassung $Version`"; git tag v$Version; git push --follow-tags"
-Write-Host "    gh release create v$Version `"E:\Claude\Tapete-Setup-$Version.exe`" --title `"Tapete $Version`" --notes `"Was neu ist ...`""
+Write-Host "    gh release create v$Version `"$ablage\Tapete-Setup-$Version.exe`" --title `"Tapete $Version`" --notes `"Was neu ist ...`""
 Write-Host ""
 Write-Host "    gh haengt die Datei selbst an. NUR das Setup ohne Videos, nichts weiter."
 Write-Host ""

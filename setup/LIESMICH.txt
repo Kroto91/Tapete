@@ -1,0 +1,142 @@
+﻿Tapete 1.2.0
+============
+
+Animierter Desktop-Hintergrund für Windows. Ein Video läuft hinter den
+Desktop-Symbolen, die Symbole bleiben sichtbar und anklickbar.
+
+Ein privates Bastelprojekt, kein fertiges Produkt. Keine Gewähr.
+
+
+Videos hinzufügen
+-----------------
+
+Videos gehören nach  %USERPROFILE%\Videos\Tapeten  ; der Ordner wird beim
+ersten Start angelegt. Es liegen keine bei, das Programm bringt nur sich
+selbst mit.
+
+Zwei Wege, ein Video dorthin zu bekommen: der Knopf "Video hinzufügen", oder
+die Datei einfach ins Fenster ziehen und loslassen. Das Programm kopiert sie
+dann selbst an die richtige Stelle.
+
+
+Bedienen
+--------
+
+Kachel anklicken       Video wird zum Hintergrund
+Rechtsklick darauf     "In den Papierkorb", nach einer Rückfrage
+Aus                    zurück zum normalen Windows-Hintergrund
+Fenster schließen      Programm läuft im Infobereich neben der Uhr weiter,
+                       Doppelklick holt es zurück, Rechtsklick hat "Beenden"
+
+Oben rechts steht "Spielmodus". Er beendet den Abspieler ganz, nicht nur
+angehalten: der Prozess verschwindet samt seiner rund 200 MB Arbeitsspeicher.
+Ein zweiter Klick holt dasselbe Video zurück. Schneller geht es per Rechtsklick
+auf das Symbol neben der Uhr, oder mit Strg+Alt+G, was auch mitten aus einem
+Spiel heraus wirkt.
+
+Tapete merkt außerdem selbst, wann eine Vollbildanwendung läuft, und schaltet
+dann von allein um. Ein Video im Vollbild zählt dabei auch als Vollbild.
+
+Vier Schalter unten:
+
+Bildschirm             auf welchem Monitor das Video läuft, oder über alle
+                       zusammen. Ohne eigene Wahl der Hauptbildschirm.
+
+Pause wenn verdeckt    hält das Video an, sobald kein Stück Desktop mehr zu
+                       sehen ist. Anders als der Spielmodus läuft der
+                       Abspieler dabei weiter, das Bild steht nur still.
+
+Halbe Bildrate         rechnet das Video einmalig auf die halbe Bildrate
+                       herunter. Ab Werk aus, weil man das im Gegensatz zur
+                       Auflösung sieht.
+
+Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
+                       Programm startet dann ohne Fenster und setzt den
+                       zuletzt gewählten Hintergrund.
+
+
+Zu große Videos werden angepasst
+--------------------------------
+
+Ist ein Video größer als der Bildschirm, auf dem es laufen soll, rechnet Tapete
+es einmalig auf dessen Größe herunter und spielt danach die kleinere Fassung.
+Das läuft von selbst im Hintergrund; solange spielt das Original weiter, danach
+schaltet Tapete kurz um.
+
+Der Grund ist die Last auf der Grafikkarte. Sie steckt fast vollständig im
+Dekodieren, und das hängt an der Auflösung des Videos, nicht an der des
+Bildschirms. Ein 4K-Video auf einem 1080p-Schirm kostet also den vollen
+4K-Preis, ohne dass man mehr sieht.
+
+Die gerechneten Fassungen liegen unter %APPDATA%\Tapete\klein. Der Ordner darf
+gelöscht werden, was gebraucht wird entsteht neu.
+
+
+Was die Grafikkarte kostet
+--------------------------
+
+Gemessen am 31.08.2026 auf einer Radeon RX 7800 XT über die
+Windows-Leistungsindikatoren:
+
+  3440x1440, 60 fps, 30 Mbit    3,9 % Zeichnen   27,6 % Dekodieren
+  1920x1080, 30 fps,  4 Mbit    0,6 % Zeichnen    6,3 % Dekodieren
+  1920x804,  60 fps (gerechnet) 2,2 % Zeichnen    9,4 % Dekodieren
+
+Die Werte schwanken zwischen zwei Durchgängen um einige Prozentpunkte. Bei
+verdecktem Desktop fällt beides auf null.
+
+
+Aktualisierungen
+----------------
+
+Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung
+vorliegt. Wenn ja, erscheint im Fenster ein Knopf "Neu: x.y.z"; ein Klick lädt
+das Setup und startet es. Klappt die Abfrage nicht, etwa ohne Netz, bleibt der
+Knopf weg und es kommt keine Meldung.
+
+Quelltext und alle Fassungen: github.com/Kroto91/Tapete
+
+
+Videoformate
+------------
+
+75 Endungen, unter anderem MP4, MKV, MOV, AVI, WMV, WebM, FLV, M2TS, MPEG,
+VOB und OGV. Hardware-Dekodierung für H.264, HEVC, MPEG-2, VC-1, VP9, WMV3
+und AV1. Kein Ton, das Video läuft immer stumm.
+
+
+Windows-Fassungen
+-----------------
+
+Getestet auf Windows 11 25H2, Build 26200. Dort hängt das Video als Kind unter
+"Progman", direkt unter der Symbol-Ebene.
+
+Auf Windows 10 und Windows 11 bis 24H2 nimmt das Programm automatisch den
+älteren Weg über die WorkerW-Ebene. Das ist nicht nachgeprüft, weil kein
+solcher Rechner zur Hand war.
+
+
+Wenn etwas nicht läuft
+----------------------
+
+Das Programm schreibt bei jedem Start ein Protokoll:
+
+    %APPDATA%\Tapete\protokoll.txt
+
+Darin steht Zeile für Zeile, wie weit der Start gekommen ist. Welche Zeile
+fehlt, sagt, wo es hakt.
+
+
+Herkunft und Lizenzen
+---------------------
+
+Der Code steht unter der MIT-Lizenz.
+
+mpv.exe stammt nicht von hier. Es ist der Windows-Bau von shinchiro, geladen am
+31.08.2026 über den ersten Link auf mpv.io, Version v0.41.0-1012-ge8673660a mit
+eingebautem FFmpeg. mpv steht unter der GPL beziehungsweise LGPL; Quellcode und
+Lizenztexte liegen unter github.com/mpv-player/mpv. mpv.io selbst stellt keine
+Windows-Dateien bereit und bezeichnet alle Binärpakete ausdrücklich als
+inoffizielle Bauten Dritter.
+
+Stand: 01.09.2026
