@@ -37,7 +37,7 @@ Spiel heraus wirkt.
 Tapete merkt außerdem selbst, wann eine Vollbildanwendung läuft, und schaltet
 dann von allein um. Ein Video im Vollbild zählt dabei auch als Vollbild.
 
-Vier Schalter unten:
+Hinter dem Zahnrad oben stehen die Einstellungen:
 
 Bildschirm             auf welchem Monitor das Video läuft, oder über alle
                        zusammen. Ohne eigene Wahl der Hauptbildschirm.
@@ -50,9 +50,29 @@ Halbe Bildrate         rechnet das Video einmalig auf die halbe Bildrate
                        herunter. Ab Werk aus, weil man das im Gegensatz zur
                        Auflösung sieht.
 
+Karussell              wechselt den Hintergrund von selbst, siehe unten.
+
 Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
                        Programm startet dann ohne Fenster und setzt den
                        zuletzt gewählten Hintergrund.
+
+
+Karussell
+---------
+
+Wenn ein Bild auf Dauer langweilig wird: ein Häkchen oben links auf jede
+Kachel, die mitlaufen soll, dann im Zahnrad das Karussell einschalten. Ab da
+wechselt der Hintergrund von selbst.
+
+Gemischt oder der Reihe nach, die Standzeit stellst du ein. Gemischt heißt
+dabei wirklich gemischt und nicht gewürfelt: Jedes Video kommt einmal dran,
+bevor sich etwas wiederholt.
+
+Gewechselt wird nur, wenn der Desktop auch zu sehen ist. Sonst zöge ein
+Arbeitstag am Bildschirm die halbe Sammlung ungesehen vorbei.
+
+Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag "Nächstes Video"
+im Symbol neben der Uhr.
 
 
 Das Bild füllt den Schirm
