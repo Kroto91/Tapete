@@ -41,7 +41,12 @@ public partial class MainWindow : Window
 
         Neuladen();
         _laedt = false;
-        _ = NachUpdateSehen();
+
+        // Gesucht wird in App, nicht hier. Sonst liefe die Abfrage zweimal, und
+        // im Autostart haenge die Aktualisierung an einem Fenster, das nie
+        // gezeigt wird.
+        Programm.NeuigkeitGefunden += NeuigkeitZeigen;
+        NeuigkeitZeigen();
     }
 
     // ---------- Liste ----------
@@ -251,31 +256,33 @@ public partial class MainWindow : Window
         Programm.HintergrundNeuAufbauen();
     }
 
-    private Neuigkeit? _neuigkeit;
-
     /// <summary>
-    /// Sucht im Hintergrund nach einer neueren Fassung. Faellt die Suche aus - kein
-    /// Netz, GitHub nicht erreichbar, Repository noch nicht eingetragen - bleibt der
-    /// Knopf einfach unsichtbar. Ein Fehlerdialog beim Programmstart waere laestiger
-    /// als der ausgebliebene Hinweis.
+    /// Zeigt den Knopf, sobald App eine neuere Fassung gefunden hat. Faellt die
+    /// Suche aus - kein Netz, GitHub nicht erreichbar -, bleibt er unsichtbar.
+    /// Ein Fehlerdialog beim Programmstart waere laestiger als der ausgebliebene
+    /// Hinweis.
     /// </summary>
-    private async Task NachUpdateSehen()
+    private void NeuigkeitZeigen()
     {
-        _neuigkeit = await Aktualisierung.Suchen();
-        if (_neuigkeit is null) return;
-        UpdateKnopf.Content = $"Neu: {_neuigkeit.Version}";
+        if (Programm.Neuigkeit is null) return;
+        UpdateKnopf.Content = $"Neu: {Programm.Neuigkeit.Version}";
         UpdateKnopf.Visibility = Visibility.Visible;
     }
 
+    /// <summary>
+    /// Von Hand ausgeloest. Hier mit Assistent, nicht still: Wer klickt, schaut
+    /// zu und soll sehen, was geschieht.
+    /// </summary>
     private async void UpdateGeklickt(object sender, RoutedEventArgs e)
     {
-        if (_neuigkeit is null) return;
+        var n = Programm.Neuigkeit;
+        if (n is null) return;
         UpdateKnopf.IsEnabled = false;
         UpdateKnopf.Content = "Wird geladen...";
-        string? fehler = await Aktualisierung.HolenUndStarten(_neuigkeit);
+        string? fehler = await Aktualisierung.HolenUndStarten(n);
         if (fehler is null) return;   // Der Installer uebernimmt, Tapete wird gleich beendet.
         FehlerZeigen(fehler);
-        UpdateKnopf.Content = $"Neu: {_neuigkeit.Version}";
+        UpdateKnopf.Content = $"Neu: {n.Version}";
         UpdateKnopf.IsEnabled = true;
     }
 

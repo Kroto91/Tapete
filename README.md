@@ -76,11 +76,27 @@ an, bleibt der Hintergrund aus, bis er wieder abgeschaltet wird.
 ## Aktualisierungen
 
 Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung vorliegt. Wenn ja,
-erscheint im Fenster ein Knopf „Neu: x.y.z“; ein Klick lädt das Setup und startet es.
-Klappt die Abfrage nicht, etwa ohne Netz, bleibt der Knopf weg und es kommt keine Meldung.
+lädt es das Setup und spielt es ohne Rückfrage ein: Der Installer läuft ohne Assistent,
+Tapete beendet sich dafür kurz und wird vom Setup wieder gestartet. Zu sehen ist davon
+nichts außer einem kurzen Aussetzer im Bild.
+
+Das geht nur ohne Nachfrage, weil die Installation unter `%LOCALAPPDATA%\Programs\Tapete`
+liegt und deshalb keine Administratorrechte braucht.
+
+Ist das Fenster offen, erscheint zusätzlich der Knopf „Neu: x.y.z“. Wer ihn drückt,
+bekommt den Installer mit Assistent zu sehen. Klappt die Abfrage nicht, etwa ohne Netz,
+bleibt der Knopf weg und es kommt keine Meldung.
+
+Geht eine Aktualisierung nicht durch, wird dieselbe Fassung nicht von allein ein zweites
+Mal versucht; sonst lüde Tapete bei jedem Start 95 MB für nichts. Der Knopf bleibt.
 
 Heruntergeladen wird nur von `github.com` und nur über HTTPS. Die Adresse stammt aus einer
 Antwort aus dem Netz und wird vor dem Laden auf ihre Herkunft geprüft.
+
+Bis Fassung 1.2.1 hing das allein am Knopf. Im Autostart wird das Fenster nie gezeigt, den
+Knopf sah dort also niemand. Und das Zeitlimit für den Download stand auf den zwanzig
+Sekunden der kurzen Abfrage, weshalb die 95 MB jedes Mal abbrachen. Beides ist behoben;
+wer auf 1.2.1 oder älter sitzt, muss einmal von Hand aktualisieren.
 
 ## Videoformate
 

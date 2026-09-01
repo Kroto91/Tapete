@@ -31,6 +31,12 @@ public partial class App : Application
     /// <summary>Merkt den letzten Stand, damit nur der Wechsel zaehlt. Siehe SpielAutomatikStarten.</summary>
     private bool _zuletztVollbild;
 
+    /// <summary>Die gefundene neuere Fassung, oder null. Das Fenster liest sie hier.</summary>
+    internal Neuigkeit? Neuigkeit { get; private set; }
+
+    /// <summary>Wird gemeldet, sobald eine neuere Fassung gefunden ist.</summary>
+    internal event Action? NeuigkeitGefunden;
+
     private System.Windows.Threading.DispatcherTimer? _spielWacht;
     private HwndSource? _quelle;
     private const int HotkeyKennung = 0xA71;
@@ -66,6 +72,7 @@ public partial class App : Application
         TrayAufbauen();
         TastenkuerzelAnmelden();
         SpielAutomatikStarten();
+        _ = NachAktualisierungSehen();
 
         bool versteckt = e.Args.Any(a => a.Equals("--versteckt", StringComparison.OrdinalIgnoreCase));
         if (!versteckt) _fenster.Show();
@@ -157,6 +164,46 @@ public partial class App : Application
 
             SpielmodusAnzeigen();
         }
+    }
+
+    /// <summary>
+    /// Sucht beim Start nach einer neueren Fassung und spielt sie gleich ein.
+    ///
+    /// Bis 1.2.1 hing das allein an einem Knopf im Fenster. Im Autostart wird das
+    /// Fenster nie gezeigt, den Knopf sieht dort also niemand - das Programm hat
+    /// sich nie aktualisiert, obwohl es die Pruefung schon gab.
+    ///
+    /// Der Knopf bleibt trotzdem: Wer das Fenster offen hat, soll sehen, was
+    /// passiert, und es notfalls selbst ausloesen koennen.
+    /// </summary>
+    private async Task NachAktualisierungSehen()
+    {
+        Neuigkeit = await Aktualisierung.Suchen();
+        if (Neuigkeit is null) return;
+        NeuigkeitGefunden?.Invoke();
+
+        // Zweimal dieselbe Fassung nicht von selbst versuchen. Geht eine
+        // Aktualisierung nicht durch, laedt Tapete sonst bei jedem Start
+        // 95 MB und beendet sich anschliessend fuer nichts.
+        string kennung = Neuigkeit.Version.ToString();
+        if (Einstellungen.AktualisierungVersucht == kennung)
+        {
+            Hintergrund.Notiz($"Aktualisierung: {kennung} war schon einmal dran, nur der Knopf");
+            return;
+        }
+        Einstellungen.AktualisierungVersucht = kennung;
+        Einstellungen.Speichern();
+
+        string? fehler = await Aktualisierung.HolenUndStarten(Neuigkeit, still: true);
+        if (fehler is not null) return;
+
+        // Dem Installer Zeit geben, sich in den Temp-Ordner zu kopieren, danach
+        // den Weg frei machen: Eine laufende Programmdatei laesst sich nicht
+        // ersetzen. Gestartet wird Tapete danach vom Setup selbst, siehe den
+        // Abschnitt [Run] in Tapete.iss.
+        await Task.Delay(2000);
+        Hintergrund.Notiz("Aktualisierung: beende mich fuer den Installer");
+        Beenden();
     }
 
     /// <summary>

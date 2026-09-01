@@ -36,11 +36,22 @@ internal static class Aktualisierung
     private static Version Dreistellig(Version v) =>
         new(v.Major, v.Minor, Math.Max(v.Build, 0));
 
-    private static readonly HttpClient Netz = Bauen();
+    /// <summary>Fuer die kurze Abfrage. Zwanzig Sekunden reichen dafuer reichlich.</summary>
+    private static readonly HttpClient Netz = Bauen(TimeSpan.FromSeconds(20));
 
-    private static HttpClient Bauen()
+    /// <summary>
+    /// Fuer den Download des Setups. Braucht ein eigenes Zeitlimit, weil
+    /// HttpClient.Timeout fuer den ganzen Vorgang gilt, nicht je Verbindung.
+    ///
+    /// Am 01.09.2026 beim Probelauf aufgefallen: Mit den zwanzig Sekunden der
+    /// Abfrage brach der Download der 95 MB jedes Mal ab. Damit hat sich Tapete
+    /// nie aktualisieren koennen, auch nicht ueber den Knopf im Fenster.
+    /// </summary>
+    private static readonly HttpClient Laden = Bauen(TimeSpan.FromMinutes(30));
+
+    private static HttpClient Bauen(TimeSpan grenze)
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var c = new HttpClient { Timeout = grenze };
         // GitHub weist Anfragen ohne Kennung ab.
         c.DefaultRequestHeaders.UserAgent.ParseAdd("Tapete");
         c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
@@ -100,9 +111,12 @@ internal static class Aktualisierung
 
     /// <summary>
     /// Laedt das Setup und startet es. Null heisst geglueckt, sonst der Grund.
-    /// Tapete selbst muss nichts schliessen, das uebernimmt der Installer.
+    ///
+    /// still=true installiert ohne Assistent und ohne Rueckfragen. Das geht nur,
+    /// weil die Installation unter %LOCALAPPDATA% liegt und deshalb keine
+    /// Administratorrechte braucht; sonst kaeme trotzdem eine Abfrage.
     /// </summary>
-    internal static async Task<string?> HolenUndStarten(Neuigkeit n)
+    internal static async Task<string?> HolenUndStarten(Neuigkeit n, bool still = false)
     {
         // Nur von GitHub, und nur ueber HTTPS. Die Adresse kommt aus einer Antwort
         // aus dem Netz; ohne diese Pruefung koennte sie auf einen beliebigen Server
@@ -120,10 +134,27 @@ internal static class Aktualisierung
         try
         {
             string ziel = Path.Combine(Path.GetTempPath(), $"Tapete-Setup-{n.Version}.exe");
-            byte[] daten = await Netz.GetByteArrayAsync(u);
-            await File.WriteAllBytesAsync(ziel, daten);
-            Hintergrund.Notiz($"Aktualisierung: {daten.Length} Bytes geladen nach {ziel}");
-            Process.Start(new ProcessStartInfo(ziel) { UseShellExecute = true });
+
+            // Durchreichen statt erst in den Arbeitsspeicher. Die Datei ist rund
+            // 95 MB gross; sie am Stueck zu halten waere fuer nichts.
+            var uhr = Stopwatch.StartNew();
+            await using (var quelle = await Laden.GetStreamAsync(u))
+            await using (var datei = File.Create(ziel))
+                await quelle.CopyToAsync(datei);
+
+            long groesse = new FileInfo(ziel).Length;
+            Hintergrund.Notiz($"Aktualisierung: {groesse / 1048576} MB geladen in " +
+                              $"{uhr.ElapsedMilliseconds / 1000} s nach {ziel}");
+            if (groesse < 1_000_000)
+            {
+                Hintergrund.Notiz("Aktualisierung: Datei zu klein, wird nicht gestartet");
+                return "Der Download ist unvollstaendig.";
+            }
+
+            var start = new ProcessStartInfo(ziel) { UseShellExecute = true };
+            if (still) start.Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART";
+            Process.Start(start);
+            Hintergrund.Notiz("Aktualisierung: Installer gestartet" + (still ? " (still)" : ""));
             return null;
         }
         catch (Exception e)

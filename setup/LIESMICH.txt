@@ -1,4 +1,4 @@
-﻿Tapete 1.2.1
+﻿Tapete 1.2.2
 ============
 
 Animierter Desktop-Hintergrund für Windows. Ein Video läuft hinter den
@@ -105,9 +105,15 @@ Aktualisierungen
 ----------------
 
 Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung
-vorliegt. Wenn ja, erscheint im Fenster ein Knopf "Neu: x.y.z"; ein Klick lädt
-das Setup und startet es. Klappt die Abfrage nicht, etwa ohne Netz, bleibt der
-Knopf weg und es kommt keine Meldung.
+vorliegt. Wenn ja, lädt es sie und spielt sie ohne Rückfrage ein. Der Installer
+läuft ohne Assistent, Tapete beendet sich dafür kurz und wird danach wieder
+gestartet. Zu sehen ist nichts außer einem kurzen Aussetzer im Bild.
+
+Ist das Fenster offen, erscheint zusätzlich ein Knopf "Neu: x.y.z". Wer ihn
+drückt, bekommt den Installer mit Assistent zu sehen. Ohne Netz bleibt der Knopf
+weg und es kommt keine Meldung.
+
+Geladen wird nur von github.com und nur über HTTPS.
 
 Quelltext und alle Fassungen: github.com/Kroto91/Tapete
 

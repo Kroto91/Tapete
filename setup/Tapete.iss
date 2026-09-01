@@ -96,6 +96,10 @@ Name: "{userstartup}\{#Name}";           Filename: "{app}\{#Exe}"; Parameters: "
 
 [Run]
 Filename: "{app}\{#Exe}"; Description: "Tapete jetzt starten"; Flags: nowait postinstall skipifsilent
+; Bei einer stillen Installation gibt es kein Haekchen zum Anklicken. Ohne
+; diese Zeile bliebe der Hintergrund nach einer automatischen Aktualisierung
+; weg, bis jemand das Programm von Hand oeffnet.
+Filename: "{app}\{#Exe}"; Parameters: "--versteckt"; Flags: nowait; Check: StilleInstallation
 
 [UninstallDelete]
 ; Die Autostart-Verknuepfung legt auch das Programm selbst an, ueber seinen
@@ -107,6 +111,13 @@ Type: files; Name: "{userstartup}\{#Name}.lnk"
 ; will, loescht den Ordner von Hand - so haelt es auch der Rest der Welt.
 
 [Code]
+
+{ Wahr, wenn ohne Assistent installiert wird. Siehe [Run]: Nur dann startet
+  Tapete am Ende von selbst wieder. }
+function StilleInstallation: Boolean;
+begin
+  Result := WizardSilent;
+end;
 { Wohin die Beispielvideos gehoeren. Inno kennt keine Konstante fuer den
   Videos-Ordner, deshalb aus der Registry gelesen - so greift auch eine
   Umleitung, etwa durch OneDrive. Faellt auf %USERPROFILE%\Videos zurueck. }

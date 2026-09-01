@@ -25,6 +25,13 @@ public sealed class Settings
     public bool BildrateHalbieren { get; set; }
 
     /// <summary>
+    /// Welche Fassung zuletzt von selbst eingespielt werden sollte. Verhindert,
+    /// dass eine Aktualisierung, die nicht durchgeht, bei jedem Start erneut
+    /// 95 MB laedt. Schlaegt sie fehl, bleibt der Knopf im Fenster.
+    /// </summary>
+    public string? AktualisierungVersucht { get; set; }
+
+    /// <summary>
     /// Auf welchen Bildschirm das Video gehoert. Geraetename wie "\.\DISPLAY1",
     /// oder "*" fuer alle zusammen. Leer heisst Hauptbildschirm.
     ///
