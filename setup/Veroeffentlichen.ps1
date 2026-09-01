@@ -76,10 +76,11 @@ Get-ChildItem "E:\Claude\Tapete-Setup-$Version*.exe" |
     ForEach-Object { Write-Host ("     {0,-44} {1,6:N1} MB" -f $_.Name, ($_.Length / 1MB)) }
 
 Write-Host ""
-Write-Host "  Naechste Schritte von Hand:"
+Write-Host "  Naechste Schritte:"
 Write-Host "    git add -A; git commit -m `"Fassung $Version`"; git tag v$Version; git push --follow-tags"
-Write-Host "    https://github.com/Kroto91/Tapete/releases/new?tag=v$Version"
-Write-Host "    Dort NUR Tapete-Setup-$Version.exe anhaengen, nichts weiter."
+Write-Host "    gh release create v$Version `"E:\Claude\Tapete-Setup-$Version.exe`" --title `"Tapete $Version`" --notes `"Was neu ist ...`""
+Write-Host ""
+Write-Host "    gh haengt die Datei selbst an. NUR das Setup ohne Videos, nichts weiter."
 Write-Host ""
 Write-Host "    Das Setup mit den Videos bleibt hier. Die Videos stammen aus dem"
 Write-Host "    Netz und sind nicht zur Weiterverbreitung gedacht; auf einem steht"
