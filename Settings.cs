@@ -31,6 +31,53 @@ public sealed class Settings
     /// </summary>
     public string? AktualisierungVersucht { get; set; }
 
+    // ---------- Karussell ----------
+
+    /// <summary>Wechselt der Hintergrund nach einer Weile von selbst?</summary>
+    public bool KarussellAn { get; set; }
+
+    /// <summary>
+    /// Wie lange ein Video stehen bleibt. Untergrenze eine Minute: Ein Wechsel
+    /// beendet mpv und startet es neu, das kostet rund eine halbe Sekunde mit
+    /// schwarzem Bild. Alle paar Minuten faellt das nicht auf, alle zehn
+    /// Sekunden schon.
+    /// </summary>
+    public int KarussellMinuten { get; set; } = 15;
+
+    /// <summary>Gemischt statt der Reihe nach.</summary>
+    public bool KarussellZufaellig { get; set; } = true;
+
+    /// <summary>
+    /// Welche Videos mitlaufen, als Dateinamen ohne Pfad. Ohne Pfad, damit die
+    /// Auswahl einen Umzug des Videoordners uebersteht.
+    /// </summary>
+    public List<string> KarussellVideos { get; set; } = [];
+
+    /// <summary>
+    /// Die Standzeit in lesbarem Deutsch. "alle 1 Minuten" liest sich falsch.
+    ///
+    /// JsonIgnore, weil das ein ausgerechneter Wert ist. Ohne die Kennzeichnung
+    /// schreibt der Serialisierer jeden oeffentlichen Lesezugriff mit in die Datei.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string KarussellDauerText => KarussellMinuten switch
+    {
+        1 => "jede Minute",
+        60 => "jede Stunde",
+        120 => "alle zwei Stunden",
+        240 => "alle vier Stunden",
+        _ => $"alle {KarussellMinuten} Minuten"
+    };
+
+    /// <summary>
+    /// Die angekreuzten Videos als vollstaendige Pfade, nur vorhandene. Ebenfalls
+    /// ausgerechnet und deshalb nicht in der Datei; sonst stuende jeder Pfad zweimal
+    /// darin, einmal als Name und einmal ganz.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IEnumerable<string> KarussellPfade =>
+        KarussellVideos.Select(n => Path.Combine(VideoOrdner, n)).Where(File.Exists);
+
     /// <summary>
     /// Auf welchen Bildschirm das Video gehoert. Geraetename wie "\.\DISPLAY1",
     /// oder "*" fuer alle zusammen. Leer heisst Hauptbildschirm.

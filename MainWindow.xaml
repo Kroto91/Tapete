@@ -37,8 +37,9 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,1,4,0">
                 <Button Style="{StaticResource Chrome}" Content="&#xE921;" Click="Minimieren"
-                        ToolTip="Minimieren" />
+                        AutomationProperties.Name="Minimieren" ToolTip="Minimieren" />
                 <Button Style="{StaticResource Chrome}" Content="&#xE8BB;" Click="Verstecken"
+                        AutomationProperties.Name="Schließen"
                         ToolTip="Schließen (läuft im Infobereich weiter)" />
             </StackPanel>
         </Grid>
@@ -59,6 +60,9 @@
                         Click="Ausschalten" IsEnabled="False" Margin="0,0,8,0" />
                 <Button Style="{StaticResource Ghost}" Content="Ordner" Click="OrdnerOeffnen" Margin="0,0,8,0"
                         ToolTip="Ordner öffnen, in dem die Videos liegen" />
+                <Button Style="{StaticResource Symbolknopf}" Content="&#xE713;" Click="EinstellungenGeklickt"
+                        Margin="0,0,8,0" AutomationProperties.Name="Einstellungen"
+                        ToolTip="Einstellungen" />
                 <Button Style="{StaticResource Primary}" Content="Video hinzufügen" Click="VideoHinzufuegen" />
             </StackPanel>
         </Grid>
@@ -75,9 +79,18 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource Kachel}" Click="KachelGeklickt"
-                                    MouseRightButtonUp="KachelRechtsklick"
-                                    ToolTip="{Binding Pfad}" />
+                            <Grid>
+                                <Button Style="{StaticResource Kachel}" Click="KachelGeklickt"
+                                        MouseRightButtonUp="KachelRechtsklick"
+                                        ToolTip="{Binding Pfad}" />
+                                <CheckBox Style="{StaticResource KachelHaken}"
+                                          IsChecked="{Binding ImKarussell, Mode=TwoWay}"
+                                          Checked="KarussellHakenGeaendert"
+                                          Unchecked="KarussellHakenGeaendert"
+                                          HorizontalAlignment="Left" VerticalAlignment="Top"
+                                          Margin="10,10,0,0"
+                                          ToolTip="Im Karussell mitlaufen lassen" />
+                            </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -108,24 +121,10 @@
                 Background="{StaticResource Panel}" Padding="24,11">
             <Grid>
                 <TextBlock x:Name="Status" Foreground="{StaticResource Dim}" FontSize="12.5"
-                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,570,0" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="UpdateKnopf" Visibility="Collapsed" Margin="0,0,18,0"
-                            Style="{StaticResource Ghost}" Click="UpdateGeklickt"
-                            ToolTip="Laedt das Setup der neuen Fassung und startet es." />
-                    <ComboBox x:Name="BildschirmWahl" Width="190" Margin="0,0,18,0"
-                              VerticalAlignment="Center"
-                              SelectionChanged="BildschirmGewaehlt"
-                              ToolTip="Auf welchem Bildschirm das Video laufen soll. Bei mehreren Monitoren spart die Wahl eines einzelnen auch Grafikleistung." />
-                    <CheckBox x:Name="PauseSchalter" Content="Pause wenn verdeckt" Margin="0,0,18,0"
-                              Checked="PauseGeaendert" Unchecked="PauseGeaendert"
-                              ToolTip="Video anhalten, solange ein Fenster den Desktop verdeckt — Vollbild oder maximiert. Spart Strom und Grafikleistung." />
-                    <CheckBox x:Name="BildrateSchalter" Content="Halbe Bildrate" Margin="0,0,18,0"
-                              Checked="BildrateGeaendert" Unchecked="BildrateGeaendert"
-                              ToolTip="Rechnet das Video einmalig auf die halbe Bildrate herunter. Spart noch einmal gut die Hälfte der Grafiklast, ist aber im Gegensatz zur Auflösung zu sehen." />
-                    <CheckBox x:Name="AutostartSchalter" Content="Mit Windows starten"
-                              Checked="AutostartGeaendert" Unchecked="AutostartGeaendert" />
-                </StackPanel>
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,200,0" />
+                <Button x:Name="UpdateKnopf" Visibility="Collapsed" HorizontalAlignment="Right"
+                        Style="{StaticResource Ghost}" Click="UpdateGeklickt"
+                        ToolTip="Laedt das Setup der neuen Fassung und startet es." />
             </Grid>
         </Border>
     </Grid>

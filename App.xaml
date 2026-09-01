@@ -82,6 +82,40 @@
                 </Setter>
             </Style>
 
+            <!-- Knopf, der ein Symbol statt Text traegt -->
+            <Style x:Key="Symbolknopf" TargetType="Button" BasedOn="{StaticResource Ghost}">
+                <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Padding" Value="11,7" />
+            </Style>
+
+            <!-- Haken oben links auf der Kachel: laeuft dieses Video im Karussell mit? -->
+            <Style x:Key="KachelHaken" TargetType="CheckBox">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Border x:Name="b" Width="24" Height="24" CornerRadius="7"
+                                    Background="#B3000000" BorderBrush="#66FFFFFF" BorderThickness="1">
+                                <TextBlock x:Name="haken" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11" Foreground="#40FFFFFF"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="b" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="haken" Property="Foreground" Value="#FF0B0E14" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="b" Property="BorderBrush" Value="White" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Kleiner Knopf fuer die Titelzeile, dort sind nur 36 Punkte Hoehe -->
             <Style x:Key="Zeile" TargetType="Button" BasedOn="{StaticResource Ghost}">
                 <Setter Property="FontSize" Value="11" />

@@ -38,8 +38,13 @@ public partial class App : Application
     internal event Action? NeuigkeitGefunden;
 
     private System.Windows.Threading.DispatcherTimer? _spielWacht;
+
+    private readonly Karussell _karussell = new();
+    private System.Windows.Threading.DispatcherTimer? _karussellUhr;
+    private DateTime _letzterWechsel = DateTime.Now;
     private HwndSource? _quelle;
     private const int HotkeyKennung = 0xA71;
+    private const int HotkeyWechseln = 0xA72;
 
     /// <summary>Das gewaehlte Video. Siehe AktuellesVideo.</summary>
     private string? _original;
@@ -57,6 +62,11 @@ public partial class App : Application
             ? "Rechenprobe Verkleinern: in Ordnung"
             : "Rechenprobe Verkleinern FEHLER: " + string.Join("; ", probe));
 
+        var probe2 = Karussell.Selbstpruefung();
+        Hintergrund.Notiz(probe2.Count == 0
+            ? "Rechenprobe Karussell: in Ordnung"
+            : "Rechenprobe Karussell FEHLER: " + string.Join("; ", probe2));
+
         // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
         _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
         if (!neu) { Hintergrund.Notiz("ENDE: schon eine Instanz da"); Shutdown(); return; }
@@ -72,6 +82,7 @@ public partial class App : Application
         TrayAufbauen();
         TastenkuerzelAnmelden();
         SpielAutomatikStarten();
+        KarussellStarten();
         _ = NachAktualisierungSehen();
 
         bool versteckt = e.Args.Any(a => a.Equals("--versteckt", StringComparison.OrdinalIgnoreCase));
@@ -241,6 +252,89 @@ public partial class App : Application
         return ergebnis;
     }
 
+    // ---------- Karussell ----------
+
+    /// <summary>
+    /// Baut die Reihenfolge neu auf. Wird beim Start gerufen und immer dann, wenn
+    /// sich in den Einstellungen die Auswahl oder die Reihenfolge geaendert hat.
+    /// </summary>
+    internal void KarussellNeuAufbauen()
+    {
+        _karussell.Neu(Einstellungen.KarussellPfade, Einstellungen.KarussellZufaellig, _original);
+        Hintergrund.Notiz($"Karussell: {_karussell.Anzahl} Videos, "
+            + (Einstellungen.KarussellZufaellig ? "gemischt" : "der Reihe nach")
+            + (Einstellungen.KarussellAn ? ", " + Einstellungen.KarussellDauerText : ", aus"));
+        VorbereitenAnstossen();
+    }
+
+    /// <summary>
+    /// Prueft alle zwanzig Sekunden, ob gewechselt werden soll.
+    ///
+    /// Nicht im Minutentakt, weil die Standzeit sonst um bis zu eine Minute
+    /// daneben laege. Ein Durchgang kostet einen Vergleich und - nur wenn die
+    /// Zeit reif ist - eine Abfrage der freien Desktopflaeche.
+    /// </summary>
+    private void KarussellStarten()
+    {
+        KarussellNeuAufbauen();
+        _karussellUhr = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(20)
+        };
+        _karussellUhr.Tick += (_, _) =>
+        {
+            if (!Einstellungen.KarussellAn || _karussell.Leer) return;
+            if (Einstellungen.Spielmodus) return;
+            if ((DateTime.Now - _letzterWechsel).TotalMinutes < Einstellungen.KarussellMinuten) return;
+
+            // Verdeckten Desktop sieht niemand. Die Uhr laeuft weiter, gewechselt
+            // wird erst, wenn wieder etwas zu sehen ist - sonst zieht ein
+            // Arbeitstag am Bildschirm die halbe Sammlung ungesehen vorbei.
+            if (Native.DesktopVerdeckt()) return;
+
+            KarussellWeiter();
+        };
+        _karussellUhr.Start();
+    }
+
+    /// <summary>Sofort zum naechsten Video. Aus dem Menue, per Tastenkuerzel oder von der Uhr.</summary>
+    internal void KarussellWeiter()
+    {
+        string? naechstes = _karussell.Weiter();
+        if (naechstes is null)
+        {
+            Hintergrund.Notiz("Karussell: kein Video angekreuzt");
+            return;
+        }
+        Hintergrund.Notiz("Karussell: weiter zu " + Path.GetFileName(naechstes));
+        HintergrundSetzen(naechstes);
+        VorbereitenAnstossen();
+    }
+
+    /// <summary>
+    /// Rechnet die verkleinerte Fassung des naechsten Videos schon aus, waehrend
+    /// das aktuelle laeuft. Ohne das haengt der erste Wechsel zu einem neuen Video
+    /// so lange, wie das Umrechnen dauert, und man sieht dabei das Original.
+    /// </summary>
+    private void VorbereitenAnstossen()
+    {
+        if (!Einstellungen.KarussellAn || _rechnet) return;
+        string? naechstes = _karussell.Vorschau;
+        if (naechstes is null) return;
+
+        var (bb, bh) = Verkleinern.Bildschirmmasse(Einstellungen.Bildschirm);
+        bool halb = Einstellungen.BildrateHalbieren;
+        if (Verkleinern.Fertig(naechstes, bb, bh, halb) is not null) return;
+
+        _rechnet = true;
+        Task.Run(() =>
+        {
+            try { Verkleinern.Erzeugen(naechstes, bb, bh, halb); }
+            catch (Exception e) { Hintergrund.Notiz($"Vorbereiten warf {e.GetType().Name}: {e.Message}"); }
+            Dispatcher.Invoke(() => _rechnet = false);
+        });
+    }
+
     /// <summary>
     /// Von Hand umgeschaltet. Danach haelt sich die Automatik heraus, bis das naechste
     /// Spiel anfaengt oder aufhoert - wer selbst schaltet, will nicht ueberstimmt werden.
@@ -314,6 +408,10 @@ public partial class App : Application
             bool ok = Native.RegisterHotKey(h, HotkeyKennung,
                 Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 'G');
             Hintergrund.Notiz("Tastenkuerzel Strg+Alt+G: " + (ok ? "angemeldet" : "abgelehnt, vermutlich belegt"));
+
+            bool ok2 = Native.RegisterHotKey(h, HotkeyWechseln,
+                Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 'W');
+            Hintergrund.Notiz("Tastenkuerzel Strg+Alt+W: " + (ok2 ? "angemeldet" : "abgelehnt, vermutlich belegt"));
         }
         catch (Exception e)
         {
@@ -323,9 +421,9 @@ public partial class App : Application
 
     private IntPtr Fensternachricht(IntPtr hwnd, int nachricht, IntPtr wp, IntPtr lp, ref bool behandelt)
     {
-        if (nachricht != Native.WM_HOTKEY || wp.ToInt32() != HotkeyKennung) return IntPtr.Zero;
-        SpielmodusUmschalten();
-        behandelt = true;
+        if (nachricht != Native.WM_HOTKEY) return IntPtr.Zero;
+        if (wp.ToInt32() == HotkeyKennung) { SpielmodusUmschalten(); behandelt = true; }
+        else if (wp.ToInt32() == HotkeyWechseln) { KarussellWeiter(); behandelt = true; }
         return IntPtr.Zero;
     }
 
@@ -383,6 +481,10 @@ public partial class App : Application
         _fenster?.StandAktualisieren();
         TrayTextSetzen();
         if (problem is not null) _fenster?.FehlerZeigen(problem);
+
+        // Nach jedem Wechsel faengt die Standzeit von vorn an, auch wenn der Wechsel
+        // von Hand kam. Sonst spraenge das Karussell gleich nach einem Klick weiter.
+        _letzterWechsel = DateTime.Now;
 
         // Nur wenn wirklich das Original spielt. Lief schon die gerechnete Fassung,
         // gibt es nichts zu tun.
@@ -466,6 +568,7 @@ public partial class App : Application
         { Checked = Einstellungen.Spielmodus };
         menu.Items.Add(_spielEintrag);
 
+        menu.Items.Add("Naechstes Video", null, (_, _) => KarussellWeiter());
         menu.Items.Add("Hintergrund aus", null, (_, _) => HintergrundAus());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Beenden", null, (_, _) => Beenden());
@@ -523,9 +626,11 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _spielWacht?.Stop();
+        _karussellUhr?.Stop();
         if (_quelle is not null)
         {
             try { Native.UnregisterHotKey(_quelle.Handle, HotkeyKennung); } catch { }
+            try { Native.UnregisterHotKey(_quelle.Handle, HotkeyWechseln); } catch { }
             _quelle.RemoveHook(Fensternachricht);
         }
         if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }

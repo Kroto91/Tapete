@@ -12,24 +12,19 @@ namespace Tapete;
 public partial class MainWindow : Window
 {
     private readonly ObservableCollection<VideoItem> _items = new();
-    private App Programm => (App)Application.Current;
 
-    // Solange true, sind die Schalter-Ereignisse stumm. Sonst schreibt schon das
-    // Setzen des Anfangszustands im Konstruktor die Einstellung und die Registry
-    // zurueck - und wenn dabei etwas schiefgeht, steht der Schalter stillschweigend
-    // auf aus. Genau so war die Pause am 31.08.2026 abgeschaltet.
-    private bool _laedt = true;
+    // Waehrend die Kachelliste aufgebaut wird, sind die Haken-Ereignisse stumm.
+    // Sonst schriebe jeder programmatisch gesetzte Haken die Auswahl zurueck -
+    // und zwar aus einer Liste, die noch gar nicht fertig gefuellt ist.
+    private bool _laedt;
+    private App Programm => (App)Application.Current;
 
     public MainWindow()
     {
         InitializeComponent();
         Liste.ItemsSource = _items;
 
-        BildschirmeFuellen();
-        PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
-        BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
         TitelText.Text = $"Tapete {Aktualisierung.Eigene}";
-        AutostartSchalter.IsChecked = Settings.Autostart;
 
         DragEnter += (_, e) => { if (HatVideos(e)) ZiehFlaeche.Visibility = Visibility.Visible; };
         DragLeave += (_, _) => ZiehFlaeche.Visibility = Visibility.Collapsed;
@@ -41,7 +36,6 @@ public partial class MainWindow : Window
         Drop += Abgelegt;
 
         Neuladen();
-        _laedt = false;
 
         // Gesucht wird in App, nicht hier. Sonst liefe die Abfrage zweimal, und
         // im Autostart haenge die Aktualisierung an einem Fenster, das nie
@@ -60,8 +54,13 @@ public partial class MainWindow : Window
                                .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
                                .ToList();
 
+        var imKarussell = new HashSet<string>(Programm.Einstellungen.KarussellVideos,
+                                              StringComparer.OrdinalIgnoreCase);
+        _laedt = true;
         _items.Clear();
-        foreach (var f in dateien) _items.Add(new VideoItem(f));
+        foreach (var f in dateien)
+            _items.Add(new VideoItem(f) { ImKarussell = imKarussell.Contains(Path.GetFileName(f)) });
+        _laedt = false;
 
         Leer.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         VorschauBilderLaden();
@@ -98,11 +97,16 @@ public partial class MainWindow : Window
         bool spiel = Programm.Spielmodus;
         SpielKnopf.Content = spiel ? "Spielmodus beenden" : "Spielmodus";
 
+        int haken = _items.Count(i => i.ImKarussell);
+        string karussell = Programm.Einstellungen.KarussellAn && haken > 1
+            ? $" · Karussell: {haken} Videos, {Programm.Einstellungen.KarussellDauerText}"
+            : "";
+
         Status.Text = spiel
             ? "Spielmodus · der Abspieler ist beendet"
             : aktiv is null
-                ? $"Nichts aktiv · {_items.Count} Video{(_items.Count == 1 ? "" : "s")} im Ordner"
-                : $"Läuft: {Path.GetFileName(aktiv)}";
+                ? $"Nichts aktiv · {_items.Count} Video{(_items.Count == 1 ? "" : "s")} im Ordner{karussell}"
+                : $"Läuft: {Path.GetFileName(aktiv)}{karussell}";
     }
 
     public void FehlerZeigen(string text) => Status.Text = "Geht nicht: " + text;
@@ -222,39 +226,31 @@ public partial class MainWindow : Window
     // ---------- Schalter ----------
 
     /// <summary>
-    /// Fuellt das Auswahlfeld. Erster Eintrag spannt ueber alle Bildschirme, danach
-    /// jeder einzelne. Bei nur einem Monitor bleibt das Feld trotzdem stehen - es
-    /// auszublenden waere eine Sonderregel fuer nichts.
+    /// Der Haken oben links auf einer Kachel. Er entscheidet, ob das Video im
+    /// Karussell mitlaeuft. Gespeichert wird die ganze Liste, nicht die einzelne
+    /// Aenderung - das ist eine Zeile statt einer Buchfuehrung.
+    ///
+    /// An Checked und Unchecked, nicht an Click: Wird der Haken ueber die
+    /// Windows-Bedienhilfen gesetzt, etwa von einer Sprachausgabe, kommt kein
+    /// Click. Am 01.09.2026 beim Pruefen aufgefallen - der Haken sass, die
+    /// Auswahl war trotzdem nicht gespeichert.
     /// </summary>
-    private void BildschirmeFuellen()
-    {
-        BildschirmWahl.Items.Clear();
-        BildschirmWahl.Items.Add(new BildschirmEintrag("*", "Alle Bildschirme"));
-        foreach (var b in Native.Bildschirme())
-            BildschirmWahl.Items.Add(new BildschirmEintrag(b.Name, b.ToString()));
-
-        string? gewaehlt = Programm.Einstellungen.Bildschirm;
-        var treffer = BildschirmWahl.Items.Cast<BildschirmEintrag>()
-                        .FirstOrDefault(x => x.Name == gewaehlt);
-        // Ohne Merkposten der Hauptbildschirm, nicht "alle" - so war es bis zum
-        // 31.08.2026, und auf zwei Monitoren zerschnitt es das Video.
-        BildschirmWahl.SelectedItem = treffer
-            ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().Skip(1).FirstOrDefault()
-            ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().First();
-    }
-
-    private sealed record BildschirmEintrag(string Name, string Anzeige)
-    {
-        public override string ToString() => Anzeige;
-    }
-
-    private void BildschirmGewaehlt(object sender, SelectionChangedEventArgs e)
+    private void KarussellHakenGeaendert(object sender, RoutedEventArgs e)
     {
         if (_laedt) return;
-        if (BildschirmWahl.SelectedItem is not BildschirmEintrag b) return;
-        Programm.Einstellungen.Bildschirm = b.Name;
+        Programm.Einstellungen.KarussellVideos =
+            _items.Where(i => i.ImKarussell).Select(i => i.Name).ToList();
         Programm.Einstellungen.Speichern();
-        Programm.HintergrundNeuAufbauen();
+        Programm.KarussellNeuAufbauen();
+        StandAktualisieren();
+    }
+
+    private void EinstellungenGeklickt(object sender, RoutedEventArgs e)
+    {
+        // Als Dialog, damit sich die Kachelhaken und das Fenster nicht gegenseitig
+        // ins Wort fallen. Wer Videos ankreuzen will, schliesst es vorher.
+        new EinstellungenFenster { Owner = this }.ShowDialog();
+        Neuladen();
     }
 
     /// <summary>
@@ -340,34 +336,6 @@ public partial class MainWindow : Window
         FehlerZeigen(fehler);
         UpdateKnopf.Content = $"Neu: {n.Version}";
         UpdateKnopf.IsEnabled = true;
-    }
-
-    private void PauseGeaendert(object sender, RoutedEventArgs e)
-    {
-        if (_laedt) return;
-        bool an = PauseSchalter.IsChecked == true;
-        Programm.Einstellungen.BeiVollbildPausieren = an;
-        Programm.Einstellungen.Speichern();
-        Programm.PauseRegelAnwenden(an);
-    }
-
-    /// <summary>
-    /// Der Schalter wirkt beim Umrechnen, nicht beim Abspielen. Deshalb den Hintergrund
-    /// neu aufbauen: Tapete sucht dann die Fassung, die zur neuen Wahl passt, und legt
-    /// sie an, falls es sie noch nicht gibt.
-    /// </summary>
-    private void BildrateGeaendert(object sender, RoutedEventArgs e)
-    {
-        if (_laedt) return;
-        Programm.Einstellungen.BildrateHalbieren = BildrateSchalter.IsChecked == true;
-        Programm.Einstellungen.Speichern();
-        Programm.HintergrundNeuAufbauen();
-    }
-
-    private void AutostartGeaendert(object sender, RoutedEventArgs e)
-    {
-        if (_laedt) return;
-        Settings.Autostart = AutostartSchalter.IsChecked == true;
     }
 
     // ---------- Fenster ----------

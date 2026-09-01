@@ -26,6 +26,14 @@ public sealed class VideoItem : INotifyPropertyChanged
         set { _bild = value; Melde(nameof(Bild)); Melde(nameof(PlatzhalterSichtbar)); }
     }
 
+    /// <summary>Laeuft dieses Video im Karussell mit? Der Haken auf der Kachel.</summary>
+    private bool _imKarussell;
+    public bool ImKarussell
+    {
+        get => _imKarussell;
+        set { _imKarussell = value; Melde(nameof(ImKarussell)); }
+    }
+
     private bool _laeuft;
     public bool Laeuft
     {
