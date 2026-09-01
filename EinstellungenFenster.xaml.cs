@@ -70,10 +70,19 @@ public partial class EinstellungenFenster : Window
         foreach (var b in Native.Bildschirme())
             BildschirmWahl.Items.Add(new BildschirmEintrag(b.Name, b.ToString()));
 
+        // Eine leere Einstellung heisst Hauptbildschirm, und genau der muss auch in
+        // der Liste stehen. Vorher fiel der Fall durch und die Liste zeigte einfach
+        // den erstaufgezaehlten Schirm als gewaehlt an - der ist nicht der
+        // Hauptbildschirm. Damit log die Liste zweimal: Sie behauptete einen
+        // Schirm, der gar nicht lief, und wer genau diesen Eintrag anklickte,
+        // loeste kein Ereignis aus, weil er schon ausgewaehlt war. Am 01.09.2026
+        // von einem Tester als "egal welchen ich waehle, es bleibt der
+        // Hauptmonitor" gemeldet.
         string? gewaehlt = Programm.Einstellungen.Bildschirm;
+        if (string.IsNullOrEmpty(gewaehlt))
+            gewaehlt = Native.Bildschirme().FirstOrDefault(s => s.Haupt)?.Name;
+
         var treffer = BildschirmWahl.Items.Cast<BildschirmEintrag>().FirstOrDefault(x => x.Name == gewaehlt);
-        // Ohne Merkposten der Hauptbildschirm, nicht "alle" - so war es bis zum
-        // 31.08.2026, und auf zwei Monitoren zerschnitt es das Video.
         BildschirmWahl.SelectedItem = treffer
             ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().Skip(1).FirstOrDefault()
             ?? BildschirmWahl.Items.Cast<BildschirmEintrag>().First();
