@@ -98,12 +98,8 @@ internal static class Verkleinern
     /// <summary>Die gerechnete Fassung, falls sie schon vorliegt.</summary>
     internal static string? Fertig(string video, int bb, int bh)
     {
-        try
-        {
-            string p = Path.Combine(Ordner, Name(video, bb, bh));
-            return File.Exists(p) ? p : null;
-        }
-        catch { return null; }
+        string p = Path.Combine(Ordner, Name(video, bb, bh));
+        return File.Exists(p) ? p : null;
     }
 
     /// <summary>
@@ -152,13 +148,23 @@ internal static class Verkleinern
         string? schon = Fertig(video, bb, bh);
         if (schon is not null) return schon;
 
+        string ziel = Path.Combine(Ordner, Name(video, bb, bh));
+
+        // Merkzettel fuer "lohnt nicht". Ohne ihn startet bei jedem Anzeigen und
+        // bei jedem Programmstart ein mpv, nur um dieselbe Absage zu errechnen.
+        // Der Name traegt Videogroesse und Bildschirmmasse, der Zettel gilt also
+        // genau fuer diese Paarung und veraltet von selbst.
+        string nein = ziel + ".nein";
+        if (File.Exists(nein)) return null;
+
         var m = Masse(video);
         if (m is null) return null;
 
         var (zb, zh) = Ziel(m.Value.Breite, m.Value.Hoehe, bb, bh);
         if (!Lohnt(m.Value.Breite, m.Value.Hoehe, zb, zh))
         {
-            Hintergrund.Notiz($"Verkleinern: {m.Value.Breite}x{m.Value.Hoehe} auf {bb}x{bh} lohnt nicht");
+            Hintergrund.Notiz($"Verkleinern: {m.Value.Breite}x{m.Value.Hoehe} auf {bb}x{bh} lohnt nicht, gemerkt");
+            try { Directory.CreateDirectory(Ordner); File.WriteAllBytes(nein, []); } catch { }
             return null;
         }
 
@@ -166,7 +172,6 @@ internal static class Verkleinern
         // rund 4,6 Mbit - die Groessenordnung, mit der die Messung oben lief.
         long rate = Math.Clamp((long)(zb * (double)zh * m.Value.Bilder * 0.05), 1_000_000, 20_000_000);
 
-        string ziel = Path.Combine(Ordner, Name(video, bb, bh));
         string halb = ziel + ".teil";
         try
         {

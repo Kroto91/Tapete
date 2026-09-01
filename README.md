@@ -17,29 +17,29 @@ Videos kommen nach `Videos\Tapeten`, siehe unten.
 
 ## Bedienen
 
-Videos gehören nach `%USERPROFILE%\Videos\Tapeten`. Der Knopf „Video hinzufügen" oder
+Videos gehören nach `%USERPROFILE%\Videos\Tapeten`. Der Knopf „“ oder
 Ziehen und Ablegen ins Fenster kopiert sie dorthin. Eine Kachel anklicken macht das
-Video zum Hintergrund, „Aus" stellt den normalen Windows-Hintergrund wieder her.
+Video zum Hintergrund, „“ stellt den normalen Windows-Hintergrund wieder her.
 
 Schließt man das Fenster, läuft Tapete im Infobereich neben der Uhr weiter. Doppelklick
-holt es zurück, Rechtsklick hat „Beenden".
+holt es zurück, Rechtsklick hat „“.
 
-Unten stehen drei Schalter:
+Unten stehen drei Schalter.
 
-**Bildschirm** — auf welchem Monitor das Video läuft, oder über alle zusammen. Ohne
-eigene Wahl der Hauptbildschirm.
+„Bildschirm“ bestimmt, auf welchem Monitor das Video läuft, oder ob es über alle
+zusammen geht. Ohne eigene Wahl ist es der Hauptbildschirm.
 
-**Pause wenn verdeckt** — hält das Video an, sobald kein Stück Desktop mehr zu sehen
-ist. Geprüft wird die tatsächlich freie Fläche, nicht nur das Vordergrundfenster: Zwei
+„Pause wenn verdeckt“ hält das Video an, sobald kein Stück Desktop mehr zu sehen ist.
+Geprüft wird die tatsächlich freie Fläche, nicht nur das Vordergrundfenster: Zwei
 Fenster nebeneinander lösen die Pause also aus.
 
-**Mit Windows starten** — legt eine Verknüpfung im Autostart-Ordner an. Tapete startet
+„Mit Windows starten“ legt eine Verknüpfung im Autostart-Ordner an. Tapete startet
 dann ohne Fenster und setzt den zuletzt gewählten Hintergrund.
 
 ## Aktualisierungen
 
 Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung vorliegt. Wenn ja,
-erscheint im Fenster ein Knopf „Neu: x.y.z"; ein Klick lädt das Setup und startet es.
+erscheint im Fenster ein Knopf „“; ein Klick lädt das Setup und startet es.
 Klappt die Abfrage nicht, etwa ohne Netz, bleibt der Knopf weg und es kommt keine Meldung.
 
 Heruntergeladen wird nur von `github.com` und nur über HTTPS. Die Adresse stammt aus einer
@@ -57,9 +57,9 @@ Gemessen auf einer Radeon RX 7800 XT über die Windows-Leistungsindikatoren:
 
 | Video | Zeichnen | Dekodieren |
 |---|---|---|
-| 3440x1440, 60 fps, 30 Mbit | 3,9 % | 27,6 % |
-| 1920x1080, 30 fps, 4 Mbit | 0,6 % | 6,3 % |
-| 1920x1080, 24 fps, 7 Mbit | 0,5 % | 5,0 % |
+| 3440×1440, 60 fps, 30 Mbit | 3,9 % | 27,6 % |
+| 1920×1080, 30 fps, 4 Mbit | 0,6 % | 6,3 % |
+| 1920×1080, 24 fps, 7 Mbit | 0,5 % | 5,0 % |
 
 Die Last steckt im Dekodieren und hängt an Auflösung und Bildrate des Videos, nicht am
 Programm. Ein 1080p-Video mit 30 Bildern kostet etwa ein Fünftel. Bei verdecktem Desktop
