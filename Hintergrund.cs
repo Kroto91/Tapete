@@ -129,6 +129,16 @@ public sealed class Hintergrund : IDisposable
         var (vx, vy, vBreite, vHoehe) = Native.VirtualScreen();
         var (px, py, breite, hoehe) = ZielFlaeche(vx, vy, vBreite, vHoehe);
 
+        // Ein Kindfenster kann nicht ueber seinen Vater hinausragen. Deckt die
+        // Desktop-Ebene nur den Hauptbildschirm ab, laesst sich ueber alle
+        // Bildschirme nichts spannen, egal welche Masse hier stehen. Das ist
+        // ohne zweiten Monitor nicht nachzustellen, deshalb steht es im
+        // Protokoll: eine Zeile, die die Frage spaeter beantwortet.
+        if (Native.GetWindowRect(ziel, out var ebene))
+            Notiz($"Desktop-Ebene {ebene.Right - ebene.Left}x{ebene.Bottom - ebene.Top} " +
+                  $"bei {ebene.Left},{ebene.Top} | Gesamtflaeche {vBreite}x{vHoehe} bei {vx},{vy} " +
+                  $"| angefordert {breite}x{hoehe} bei {px},{py}");
+
         // Flags wie bei Lively 2.2.1.0, am 31.08.2026 aus dessen Kommandozeile gelesen.
         // Wichtig: kein Ton, Endlosschleife, keine Bedienelemente, keine Mausannahme,
         // Hardware-Dekodierung. --no-config haelt eine vorhandene mpv.conf des Nutzers raus.
@@ -140,6 +150,14 @@ public sealed class Hintergrund : IDisposable
         };
         foreach (string a in new[]
         {
+            // Fuellen statt einpassen. Ohne das laesst mpv das Seitenverhaeltnis
+            // stehen und legt schwarze Balken daneben: ein 21:9-Video auf einem
+            // 16:9-Schirm bekommt Balken oben und unten, ein 16:9-Video auf einem
+            // Ultrawide welche links und rechts. Am 01.09.2026 von einem Nutzer
+            // mit zwei Bildschirmen gemeldet, im Bildschirmfoto deutlich zu sehen.
+            // panscan zoomt stattdessen bis zum Rand und schneidet den Ueberstand
+            // ab. Verzerrt wird nichts, dafuer waere keepaspect=no noetig.
+            "--panscan=1.0",
             "--volume=0", "--loop-file", "--keep-open", "--media-controls=no",
             "--force-window=yes", "--no-window-dragging", "--cursor-autohide=no",
             "--stop-screensaver=no", "--input-default-bindings=no", "--no-border",

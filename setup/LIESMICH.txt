@@ -1,4 +1,4 @@
-﻿Tapete 1.2.0
+﻿Tapete 1.2.1
 ============
 
 Animierter Desktop-Hintergrund für Windows. Ein Video läuft hinter den
@@ -55,6 +55,18 @@ Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
                        zuletzt gewählten Hintergrund.
 
 
+Das Bild füllt den Schirm
+-------------------------
+
+Das Video wird so vergrößert, dass es den Bildschirm ganz ausfüllt; der
+Überstand wird abgeschnitten. Verzerrt wird nichts, das Seitenverhältnis
+bleibt.
+
+Bis Fassung 1.2.0 wurde stattdessen eingepasst. Ein Video im Verhältnis 21:9
+bekam auf einem 16:9-Bildschirm dadurch schwarze Balken oben und unten, ein
+16:9-Video auf einem Ultrawide welche links und rechts.
+
+
 Zu große Videos werden angepasst
 --------------------------------
 
@@ -67,6 +79,9 @@ Der Grund ist die Last auf der Grafikkarte. Sie steckt fast vollständig im
 Dekodieren, und das hängt an der Auflösung des Videos, nicht an der des
 Bildschirms. Ein 4K-Video auf einem 1080p-Schirm kostet also den vollen
 4K-Preis, ohne dass man mehr sieht.
+
+Gerechnet wird auf das kleinste Maß, das den Bildschirm noch abdeckt, nicht auf
+das größte, das hineinpasst. Sonst müsste beim Füllen wieder hochgezogen werden.
 
 Die gerechneten Fassungen liegen unter %APPDATA%\Tapete\klein. Der Ordner darf
 gelöscht werden, was gebraucht wird entsteht neu.

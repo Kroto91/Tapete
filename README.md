@@ -104,15 +104,29 @@ fällt beides auf null.
 
 Arbeitsspeicher: rund 90 MB für Tapete, rund 200 MB für mpv.
 
+## Das Bild füllt den Schirm
+
+Das Video wird so vergrößert, dass es den Bildschirm ganz ausfüllt, und der Überstand wird
+abgeschnitten. Verzerrt wird nichts, das Seitenverhältnis bleibt.
+
+Bis Fassung 1.2.0 wurde stattdessen eingepasst. Ein Video im Verhältnis 21:9 bekam auf einem
+16:9-Bildschirm dadurch schwarze Balken oben und unten, ein 16:9-Video auf einem Ultrawide
+welche links und rechts. Gemeldet am 01.09.2026 von einem Nutzer mit zwei Bildschirmen.
+
 ## Zu große Videos werden angepasst
 
 Ist ein Video größer als der Bildschirm, auf dem es laufen soll, rechnet Tapete es einmalig
-auf dessen Größe herunter und spielt danach die kleinere Fassung. Das läuft von selbst im
-Hintergrund und dauert mit Hardware-Kodierung wenige Sekunden; solange spielt das Original
-weiter, danach schaltet Tapete kurz um.
+herunter und spielt danach die kleinere Fassung. Das läuft von selbst im Hintergrund und
+dauert mit Hardware-Kodierung wenige Sekunden; solange spielt das Original weiter, danach
+schaltet Tapete kurz um.
+
+Gerechnet wird auf das kleinste Maß, das den Bildschirm noch abdeckt, nicht auf das größte,
+das hineinpasst. Ein 3440×1440-Video für einen 1920×1080-Schirm wird also 2580×1080, nicht
+1920×804. Sonst müsste mpv die fehlenden Zeilen beim Füllen wieder hochziehen.
 
 Gemessen am 31. August 2026 auf einer Radeon RX 7800 XT, jeweils bildschirmfüllend auf
-3440×1440, Mittel aus sechs Abtastungen:
+3440×1440, Mittel aus sechs Abtastungen. Die 1920×804 sind das, was die damalige Regel
+ergab; heute wäre es an dieser Stelle mehr:
 
 | Fassung | Zeichnen | Dekodieren |
 |---|---|---|
@@ -137,8 +151,11 @@ von AMD, Nvidia und Intel, dann MediaFoundation, zuletzt libx264 in Software; de
 der eine brauchbare Datei liefert, gewinnt.
 
 Die gerechneten Fassungen liegen unter `%APPDATA%\Tapete\klein`. Der Ordner darf gelöscht
-werden, was gebraucht wird entsteht neu. Passt ein Video schon auf den Bildschirm, bleibt es
+werden, was gebraucht wird entsteht neu. Deckt ein Video den Bildschirm schon ab, bleibt es
 unangetastet: auf einem 3440×1440-Schirm mit einem 3440×1440-Video passiert nichts.
+
+Im Dateinamen steckt die Rechenregel mit drin. Nach einer Aktualisierung, die diese Regel
+ändert, werden vorhandene Dateien deshalb nicht weiterverwendet, sondern neu gerechnet.
 
 ## Wie es funktioniert
 

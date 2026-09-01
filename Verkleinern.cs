@@ -45,14 +45,22 @@ internal static class Verkleinern
         ["h264_amf", "h264_nvenc", "h264_qsv", "h264_mf", "libx264"];
 
     /// <summary>
-    /// Zielmasse: passen in den Bildschirm, behalten das Seitenverhaeltnis und
-    /// werden nie groesser als die Vorlage. Gerade Zahlen, weil H.264 in
-    /// 2x2-Bloecken rechnet.
+    /// Zielmasse: decken den Bildschirm gerade noch ab, behalten das
+    /// Seitenverhaeltnis und werden nie groesser als die Vorlage. Gerade Zahlen,
+    /// weil H.264 in 2x2-Bloecken rechnet.
+    ///
+    /// Der groessere der beiden Faktoren, nicht der kleinere. Bis zum 01.09.2026
+    /// stand hier Math.Min, also die Masse, die vollstaendig in den Bildschirm
+    /// passen. Seit mpv mit panscan fuellt statt einzupassen, waere das falsch:
+    /// Ein 3440x1440-Video fuer einen 1920x1080-Schirm waere auf 1920x804
+    /// gerechnet worden, und mpv haette diese 804 Zeilen anschliessend wieder auf
+    /// 1080 hochgezogen. Mit Math.Max sind es 2580x1080, senkrecht Punkt auf
+    /// Punkt, und quer schneidet mpv ab.
     /// </summary>
     internal static (int Breite, int Hoehe) Ziel(int vb, int vh, int bb, int bh)
     {
         if (vb <= 0 || vh <= 0 || bb <= 0 || bh <= 0) return (vb, vh);
-        double f = Math.Min((double)bb / vb, (double)bh / vh);
+        double f = Math.Max((double)bb / vb, (double)bh / vh);
         if (f >= 1) return (vb, vh);
         return (Gerade(vb * f), Gerade(vh * f));
     }
@@ -97,7 +105,14 @@ internal static class Verkleinern
         try { gr = new FileInfo(video).Length; } catch { }
         // Das "-h" haelt die halbierte Fassung von der vollen getrennt. Sonst bekaeme
         // man nach dem Umlegen des Schalters die alte Datei zurueck.
-        return $"{Path.GetFileNameWithoutExtension(video)}-{gr}-{bb}x{bh}{(halbieren ? "-h" : "")}.mp4";
+        //
+        // Das "-d" steht fuer die Rechenregel, nicht fuer eine Eigenschaft der Datei.
+        // Bis 1.2.0 passte Ziel() das Video in den Bildschirm ein, seit dem 01.09.2026
+        // deckt es ihn ab. Wer aktualisiert, hat im Zwischenspeicher noch Dateien nach
+        // der alten Regel liegen; ohne diesen Buchstaben wuerden sie weiterverwendet
+        // und waeren zu klein. Aendert sich die Regel erneut, kommt der naechste
+        // Buchstabe. Die alten Dateien stoeren nicht, der Ordner darf jederzeit weg.
+        return $"{Path.GetFileNameWithoutExtension(video)}-{gr}-{bb}x{bh}{(halbieren ? "-h" : "")}-d.mp4";
     }
 
     /// <summary>
@@ -308,13 +323,15 @@ internal static class Verkleinern
         var fehler = new List<string>();
         void Pruefe(string was, bool gut) { if (!gut) fehler.Add(was); }
 
-        Pruefe("3440x1440 auf 1920x1080 -> 1920x804", Ziel(3440, 1440, 1920, 1080) == (1920, 804));
+        // 21:9 auf 16:9: senkrecht Punkt auf Punkt, quer schneidet mpv ab.
+        Pruefe("3440x1440 auf 1920x1080 -> 2580x1080", Ziel(3440, 1440, 1920, 1080) == (2580, 1080));
+        Pruefe("Ergebnis deckt den Schirm", Ziel(3440, 1440, 1920, 1080) is (>= 1920, >= 1080));
         Pruefe("gleich gross bleibt unveraendert", Ziel(3440, 1440, 3440, 1440) == (3440, 1440));
         Pruefe("kleiner als der Schirm wird nie vergroessert", Ziel(1920, 1080, 3440, 1440) == (1920, 1080));
         Pruefe("1920x1080 auf 1280x720", Ziel(1920, 1080, 1280, 720) == (1280, 720));
         Pruefe("gerade Zahlen", Ziel(1999, 1001, 1000, 1000).Breite % 2 == 0);
         Pruefe("Unsinn bleibt Unsinn", Ziel(0, 0, 1920, 1080) == (0, 0));
-        Pruefe("Faktor drei lohnt", Lohnt(3440, 1440, 1920, 804, false));
+        Pruefe("Faktor zwei lohnt", Lohnt(3440, 1440, 2580, 1080, false));
         Pruefe("gleich gross lohnt nicht", !Lohnt(1920, 1080, 1920, 1080, false));
         Pruefe("ein Zehntel weniger lohnt nicht", !Lohnt(1920, 1080, 1820, 1024, false));
         Pruefe("halbe Bildrate lohnt immer", Lohnt(1920, 1080, 1920, 1080, true));

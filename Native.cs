@@ -271,7 +271,7 @@ internal static class Native
 
         /// <summary>Was im Auswahlfeld steht.</summary>
         public override string ToString() =>
-            (Haupt ? "Hauptbildschirm" : Name.Replace(@"\.\\", "")) + $" - {Breite} x {Hoehe}";
+            (Haupt ? "Hauptbildschirm" : Name.Replace(@"\\.\", "")) + $" - {Breite} x {Hoehe}";
     }
 
     /// <summary>
