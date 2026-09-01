@@ -142,7 +142,10 @@ public sealed class Settings
             Directory.CreateDirectory(Ordner);
             File.WriteAllText(Datei, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
         }
-        catch { }
+        // Schlug das Speichern fehl, verschwand die Einstellung bisher lautlos: kein
+        // Hinweis im Fenster, keine Zeile im Protokoll. Gescheitert wird weiter still,
+        // aber nicht mehr unsichtbar.
+        catch (Exception e) { Hintergrund.Notiz($"Einstellungen speichern gescheitert: {e.GetType().Name}: {e.Message}"); }
     }
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";

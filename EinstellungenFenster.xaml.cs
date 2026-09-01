@@ -107,8 +107,17 @@ public partial class EinstellungenFenster : Window
 
     private void BildschirmGewaehlt(object sender, SelectionChangedEventArgs e)
     {
-        if (_laedt) return;
-        if (BildschirmWahl.SelectedItem is not BildschirmEintrag b) return;
+        // Bis 1.3.4 meldete diese Stelle gar nichts. Bei einem Tester blieb die
+        // Einstellung ueber Stunden auf dem Hauptbildschirm stehen, und aus dem
+        // Protokoll war nicht zu sehen, ob er ueberhaupt etwas angeklickt hat oder
+        // ob das Ereignis ausbleibt. Genau das sagen die drei Zeilen jetzt.
+        if (_laedt) { Hintergrund.Notiz("Bildschirmwahl: waehrend des Aufbaus, ignoriert"); return; }
+        if (BildschirmWahl.SelectedItem is not BildschirmEintrag b)
+        {
+            Hintergrund.Notiz("Bildschirmwahl: nichts ausgewaehlt");
+            return;
+        }
+        Hintergrund.Notiz($"Bildschirmwahl: {b.Name} gewaehlt");
         Programm.Einstellungen.Bildschirm = b.Name;
         Programm.Einstellungen.Speichern();
         Programm.HintergrundNeuAufbauen();
