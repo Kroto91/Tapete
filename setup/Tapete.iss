@@ -8,7 +8,7 @@
 ; Bauen:  ISCC.exe Tapete.iss
 
 #define Name      "Tapete"
-#define Version   "1.1.0"
+#define Version   "1.2.0"
 #define Autor     "Timm-Fabian Krotofil"
 #define Exe       "Tapete.exe"
 #define Quelle    "E:\Claude\Tapete\fertig"
