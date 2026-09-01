@@ -31,8 +31,17 @@ public sealed class Hintergrund : IDisposable
     public string VideoPfad { get; }
     public bool BeiVollbildPausieren { get; set; } = true;
 
-    /// <summary>Geraetename des Zielbildschirms, "*" fuer alle, leer fuer den Hauptbildschirm.</summary>
-    public string? Bildschirm { get; init; }
+    /// <summary>
+    /// Geraetename des Zielbildschirms, "*" fuer jeden einzeln, leer fuer den
+    /// Hauptbildschirm.
+    ///
+    /// Kommt als Konstruktorparameter herein, nicht als Objektinitialisierer. Ein
+    /// Initialisierer laeuft erst nach dem Konstruktor, und der ruft Aufbauen()
+    /// auf - der Wert waere dort immer null gewesen. Genau das war der Fehler, an
+    /// dem am 01.09.2026 ein ganzer Abend hing: Die Auswahl kam an, wurde
+    /// gespeichert und weitergegeben, und der Aufbau sah sie trotzdem nie.
+    /// </summary>
+    public string? Bildschirm { get; }
 
     /// <summary>False, wenn der Aufbau schiefging. Dann laeuft kein Video.</summary>
     public bool Laeuft { get; private set; }
@@ -42,9 +51,10 @@ public sealed class Hintergrund : IDisposable
     /// liesse sich erst nach dem Konstruktor abonnieren, und genau dort meldet
     /// Aufbauen() jeden Startfehler - er waere ins Leere gelaufen.
     /// </summary>
-    public Hintergrund(string videoPfad, Action<string>? fehler = null)
+    public Hintergrund(string videoPfad, string? bildschirm = null, Action<string>? fehler = null)
     {
         VideoPfad = videoPfad;
+        Bildschirm = bildschirm;
         _fehler = fehler;
         Aufbauen();
         SystemEvents.DisplaySettingsChanged += BildschirmGeaendert;

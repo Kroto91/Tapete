@@ -463,10 +463,14 @@ public partial class App : Application
         // noch einmal gesetzt, weil StandAktualisieren() dieselbe Zeile beschreibt und
         // den Fehler sonst sofort wieder ueberdeckt.
         string? problem = null;
-        _wallpaper = new Hintergrund(abspielen, text => { problem = text; _fenster?.FehlerZeigen(text); })
+        // Der Bildschirm gehoert in den Konstruktor, nicht in den Initialisierer: Der
+        // laeuft erst danach, und der Konstruktor baut den Hintergrund schon auf.
+        // BeiVollbildPausieren darf bleiben, das liest erst der Takt zwei Sekunden
+        // spaeter, und der Standardwert stimmt.
+        _wallpaper = new Hintergrund(abspielen, Einstellungen.Bildschirm,
+            text => { problem = text; _fenster?.FehlerZeigen(text); })
         {
-            BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren,
-            Bildschirm = Einstellungen.Bildschirm
+            BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren
         };
 
         // Nur merken, was auch wirklich laeuft. Sonst versucht Tapete bei jedem Start
