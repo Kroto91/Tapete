@@ -1,5 +1,5 @@
-﻿Tapete 1.2.3
-============
+﻿Tapete
+======
 
 Animierter Desktop-Hintergrund für Windows. Ein Video läuft hinter den
 Desktop-Symbolen, die Symbole bleiben sichtbar und anklickbar.
@@ -23,7 +23,8 @@ Bedienen
 --------
 
 Kachel anklicken       Video wird zum Hintergrund
-Rechtsklick darauf     "In den Papierkorb", nach einer Rückfrage
+Rechtsklick darauf     Video einem einzelnen Bildschirm zuweisen, oder
+                       "In den Papierkorb" nach einer Rückfrage
 Aus                    zurück zum normalen Windows-Hintergrund
 Fenster schließen      Programm läuft im Infobereich neben der Uhr weiter,
                        Doppelklick holt es zurück, Rechtsklick hat "Beenden"
@@ -39,8 +40,8 @@ dann von allein um. Ein Video im Vollbild zählt dabei auch als Vollbild.
 
 Hinter dem Zahnrad oben stehen die Einstellungen:
 
-Bildschirm             auf welchem Monitor das Video läuft, oder über alle
-                       zusammen. Ohne eigene Wahl der Hauptbildschirm.
+Bildschirm             auf welchem Monitor das Video läuft, oder auf jedem
+                       einzeln. Ohne eigene Wahl der Hauptbildschirm.
 
 Pause wenn verdeckt    hält das Video an, sobald kein Stück Desktop mehr zu
                        sehen ist. Anders als der Spielmodus läuft der
@@ -55,6 +56,20 @@ Karussell              wechselt den Hintergrund von selbst, siehe unten.
 Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
                        Programm startet dann ohne Fenster und setzt den
                        zuletzt gewählten Hintergrund.
+
+
+Zwei Videos auf zwei Bildschirmen
+---------------------------------
+
+Rechtsklick auf eine Kachel, dann "Auf DISPLAY2 - 1920 x 1080 zeigen": Dieses
+Video läuft ab sofort nur dort. Auf jedem Bildschirm, dem nichts zugewiesen
+ist, bleibt das zuletzt angeklickte Video. So laufen zwei verschiedene Videos
+nebeneinander.
+
+Der Punkt erscheint erst ab zwei angeschlossenen Bildschirmen. Beim Zuweisen
+stellt Tapete die Einstellung "Bildschirm" auf jeden einzeln um, sonst bliebe
+die Zuweisung wirkungslos. "Zuweisungen aufheben" im selben Menü nimmt alle
+wieder zurück.
 
 
 Karussell

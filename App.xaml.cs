@@ -467,7 +467,24 @@ public partial class App : Application
         // laeuft erst danach, und der Konstruktor baut den Hintergrund schon auf.
         // BeiVollbildPausieren darf bleiben, das liest erst der Takt zwei Sekunden
         // spaeter, und der Standardwert stimmt.
-        _wallpaper = new Hintergrund(abspielen, Einstellungen.Bildschirm,
+
+        // Je Bildschirm ein eigenes Video, soweit eines zugewiesen ist. Nur bei
+        // "jeder Bildschirm einzeln" sinnvoll, sonst laeuft ohnehin ueberall dasselbe.
+        //
+        // ponytail: Alle Fassungen werden auf den groessten Schirm gerechnet, nicht
+        // je Schirm einzeln. Eine Datei je Bildschirmgroesse erst, wenn das auf dem
+        // kleineren messbar Last kostet.
+        Dictionary<string, string>? jeSchirm = null;
+        if (Einstellungen.Bildschirm == "*" && Einstellungen.VideoJeBildschirm.Count > 0)
+        {
+            jeSchirm = [];
+            foreach (var (schirm, eigenes) in Einstellungen.VideoJeBildschirm)
+                if (File.Exists(eigenes))
+                    jeSchirm[schirm] = Verkleinern.Fertig(eigenes, bb, bh, halb) ?? eigenes;
+            Hintergrund.Notiz($"Eigene Videos je Bildschirm: {jeSchirm.Count}");
+        }
+
+        _wallpaper = new Hintergrund(abspielen, Einstellungen.Bildschirm, jeSchirm,
             text => { problem = text; _fenster?.FehlerZeigen(text); })
         {
             BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren

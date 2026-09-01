@@ -88,6 +88,13 @@ public sealed class Settings
     /// </summary>
     public string? Bildschirm { get; set; }
 
+    /// <summary>
+    /// Geraetename des Bildschirms auf sein eigenes Video. Wirkt nur bei
+    /// <see cref="Bildschirm"/> gleich "*", sonst laeuft ohnehin ueberall dasselbe.
+    /// Wo nichts eingetragen ist, gilt das zuletzt angeklickte Video.
+    /// </summary>
+    public Dictionary<string, string> VideoJeBildschirm { get; set; } = [];
+
     private static string Ordner =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tapete");
 

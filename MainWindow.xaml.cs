@@ -148,13 +148,60 @@ public partial class MainWindow : Window
     {
         if (((FrameworkElement)sender).DataContext is not VideoItem item) return;
 
+        var menue = new ContextMenu { PlacementTarget = (UIElement)sender };
+
+        // Je Bildschirm ein eigenes Video. Erst ab zwei Schirmen sinnvoll, deshalb
+        // taucht der Punkt bei einem gar nicht erst auf.
+        var schirme = Native.Bildschirme();
+        if (schirme.Count > 1)
+        {
+            foreach (var s in schirme)
+            {
+                string name = s.Name;
+                var zu = new MenuItem { Header = $"Auf {s} zeigen" };
+                zu.Click += (_, _) => BildschirmZuweisen(item, name);
+                menue.Items.Add(zu);
+            }
+
+            if (Programm.Einstellungen.VideoJeBildschirm.Count > 0)
+            {
+                var zurueck = new MenuItem { Header = "Zuweisungen aufheben" };
+                zurueck.Click += (_, _) =>
+                {
+                    Programm.Einstellungen.VideoJeBildschirm.Clear();
+                    Programm.Einstellungen.Speichern();
+                    Programm.HintergrundNeuAufbauen();
+                    Status.Text = "Auf allen Bildschirmen laeuft wieder dasselbe Video.";
+                };
+                menue.Items.Add(zurueck);
+            }
+            menue.Items.Add(new Separator());
+        }
+
         var punkt = new MenuItem { Header = "In den Papierkorb" };
         punkt.Click += (_, _) => Entfernen(item);
-
-        var menue = new ContextMenu { PlacementTarget = (UIElement)sender };
         menue.Items.Add(punkt);
+
         menue.IsOpen = true;
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Weist ein Video einem Bildschirm zu und schaltet dabei auf „jeder Bildschirm
+    /// einzeln“ um. Ohne diese Umschaltung liefe die Zuweisung ins Leere, und der
+    /// Nutzer saehe nur, dass sein Klick nichts bewirkt.
+    /// </summary>
+    private void BildschirmZuweisen(VideoItem item, string schirm)
+    {
+        Programm.Einstellungen.VideoJeBildschirm[schirm] = item.Pfad;
+        Programm.Einstellungen.Bildschirm = "*";
+        Programm.Einstellungen.Speichern();
+        // Laeuft noch gar nichts, wuerde HintergrundNeuAufbauen nichts tun und die
+        // Zuweisung bliebe unsichtbar bis zum naechsten Klick auf eine Kachel.
+        if (Programm.AktuellesVideo is null) Programm.HintergrundSetzen(item.Pfad);
+        else Programm.HintergrundNeuAufbauen();
+        Status.Text = $"{Path.GetFileName(item.Pfad)} laeuft jetzt auf "
+            + schirm.Replace(@"\\.\", "") + ".";
     }
 
     private void Entfernen(VideoItem item)

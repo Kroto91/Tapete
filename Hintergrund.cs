@@ -23,6 +23,8 @@ public sealed class Hintergrund : IDisposable
 {
     private readonly DispatcherTimer _wacht = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly Action<string>? _fehler;
+    /// <summary>Geraetename auf eigenes Video. Wo nichts steht, gilt <see cref="VideoPfad"/>.</summary>
+    private readonly IReadOnlyDictionary<string, string>? _jeBildschirm;
     /// <summary>Ein Eintrag je belegtem Bildschirm. Bei "*" mehrere, sonst einer.</summary>
     private readonly List<(Process Prozess, string Pipe)> _spieler = new();
     private bool _pausiert;
@@ -51,10 +53,12 @@ public sealed class Hintergrund : IDisposable
     /// liesse sich erst nach dem Konstruktor abonnieren, und genau dort meldet
     /// Aufbauen() jeden Startfehler - er waere ins Leere gelaufen.
     /// </summary>
-    public Hintergrund(string videoPfad, string? bildschirm = null, Action<string>? fehler = null)
+    public Hintergrund(string videoPfad, string? bildschirm = null,
+        IReadOnlyDictionary<string, string>? videoJeBildschirm = null, Action<string>? fehler = null)
     {
         VideoPfad = videoPfad;
         Bildschirm = bildschirm;
+        _jeBildschirm = videoJeBildschirm;
         _fehler = fehler;
         Aufbauen();
         SystemEvents.DisplaySettingsChanged += BildschirmGeaendert;
@@ -159,8 +163,12 @@ public sealed class Hintergrund : IDisposable
                   $"| {Native.Bildschirme().Count} Bildschirm(e) | Einstellung {wahl} " +
                   $"| {flaechen.Count} Flaeche(n)");
 
-        foreach (var (px, py, breite, hoehe) in flaechen)
-            EinenStarten(mpv, ziel, px, py, breite, hoehe);
+        foreach (var (name, px, py, breite, hoehe) in flaechen)
+        {
+            // Hat der Schirm ein eigenes Video, laeuft dort das; sonst das gemeinsame.
+            string video = _jeBildschirm?.GetValueOrDefault(name) ?? VideoPfad;
+            EinenStarten(mpv, ziel, video, px, py, breite, hoehe);
+        }
 
         Laeuft = _spieler.Count > 0;
         if (!Laeuft) _fehler?.Invoke("Kein Bildschirm liess sich belegen.");
@@ -172,7 +180,7 @@ public sealed class Hintergrund : IDisposable
     /// auf zwei Fenster gleichzeitig legen, und ein einziges gespanntes Fenster war
     /// genau das, was der Nutzer am 01.09.2026 nicht wollte.
     /// </summary>
-    private void EinenStarten(string mpv, IntPtr ziel, int px, int py, int breite, int hoehe)
+    private void EinenStarten(string mpv, IntPtr ziel, string video, int px, int py, int breite, int hoehe)
     {
         string pipe = "tapete_" + Guid.NewGuid().ToString("N")[..12];
 
@@ -206,7 +214,7 @@ public sealed class Hintergrund : IDisposable
             // 3,85 auf 1,31 Prozent. Am Dekodierer aendert es nichts, der haengt
             // an Aufloesung und Bildrate des Videos.
             "--profile=fast",
-            "--input-ipc-server=" + pipe, "--geometry=-9999:0", VideoPfad,
+            "--input-ipc-server=" + pipe, "--geometry=-9999:0", video,
         }) start.ArgumentList.Add(a);
 
         Process? prozess;
@@ -251,7 +259,7 @@ public sealed class Hintergrund : IDisposable
               $"SetWindowPos {gesetzt}");
         _spieler.Add((prozess, pipe));
         Notiz($"Aufbau geglueckt, mpv PID {prozess.Id}, Fenster {fenster}, " +
-              $"{breite}x{hoehe} bei {px},{py}");
+              $"{breite}x{hoehe} bei {px},{py}, {Path.GetFileName(video)}");
     }
 
     /// <summary>
@@ -259,7 +267,8 @@ public sealed class Hintergrund : IDisposable
     /// Leerer Name heisst Hauptbildschirm, "*" heisst alle zusammen. Ist der
     /// gemerkte Bildschirm abgesteckt, faellt es auf den Hauptbildschirm zurueck.
     /// </summary>
-    private List<(int X, int Y, int Breite, int Hoehe)> ZielFlaechen(int vx, int vy, int vBreite, int vHoehe)
+    private List<(string Name, int X, int Y, int Breite, int Hoehe)> ZielFlaechen(
+        int vx, int vy, int vBreite, int vHoehe)
     {
         if (Bildschirm == "*")
         {
@@ -267,7 +276,7 @@ public sealed class Hintergrund : IDisposable
             if (schirme.Count == 0)
             {
                 Notiz("Zielflaeche: kein Bildschirm gefunden, nehme die Gesamtflaeche");
-                return [(0, 0, vBreite, vHoehe)];
+                return [("", 0, 0, vBreite, vHoehe)];
             }
             // Je Bildschirm eine eigene Flaeche, nicht ein Fenster ueber alle. Ein
             // gespanntes Fenster zeigt das Video einmal quer ueber beide Schirme;
@@ -275,7 +284,7 @@ public sealed class Hintergrund : IDisposable
             foreach (var s in schirme)
                 Notiz($"Zielflaeche: {s.Name} {s.Breite}x{s.Hoehe} bei {s.Flaeche.Left},{s.Flaeche.Top}");
             return schirme
-                .Select(s => (s.Flaeche.Left - vx, s.Flaeche.Top - vy, s.Breite, s.Hoehe))
+                .Select(s => (s.Name, s.Flaeche.Left - vx, s.Flaeche.Top - vy, s.Breite, s.Hoehe))
                 .ToList();
         }
 
@@ -284,10 +293,10 @@ public sealed class Hintergrund : IDisposable
         if (b is null)
         {
             Notiz("Zielflaeche: kein Bildschirm gefunden, nehme die Gesamtflaeche");
-            return [(0, 0, vBreite, vHoehe)];
+            return [("", 0, 0, vBreite, vHoehe)];
         }
         Notiz($"Zielflaeche: {b.Name} {b.Breite}x{b.Hoehe} bei {b.Flaeche.Left},{b.Flaeche.Top}");
-        return [(b.Flaeche.Left - vx, b.Flaeche.Top - vy, b.Breite, b.Hoehe)];
+        return [(b.Name, b.Flaeche.Left - vx, b.Flaeche.Top - vy, b.Breite, b.Hoehe)];
     }
 
     /// <summary>
