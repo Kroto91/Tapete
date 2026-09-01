@@ -18,6 +18,13 @@ public sealed class Settings
     public bool Spielmodus { get; set; }
 
     /// <summary>
+    /// Halbe Bildrate. Wirkt nicht beim Abspielen, sondern beim einmaligen Umrechnen:
+    /// mpv wuerde sonst trotzdem jedes Bild dekodieren und erst danach welche weglassen.
+    /// Ab Werk aus, weil man es im Gegensatz zur Aufloesung sieht.
+    /// </summary>
+    public bool BildrateHalbieren { get; set; }
+
+    /// <summary>
     /// Auf welchen Bildschirm das Video gehoert. Geraetename wie "\.\DISPLAY1",
     /// oder "*" fuer alle zusammen. Leer heisst Hauptbildschirm.
     ///

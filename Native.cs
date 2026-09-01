@@ -356,6 +356,54 @@ internal static class Native
         }
     }
 
+    // ---------- Spielt gerade jemand? ----------
+
+    [DllImport("shell32.dll")]
+    private static extern int SHQueryUserNotificationState(out int zustand);
+
+    // Die Zustaende aus shellapi.h. Was Windows hier meldet, ist dieselbe Auskunft,
+    // nach der es entscheidet, ob es Benachrichtigungen zurueckhaelt.
+    private const int QUNS_BUSY = 2;                      // Vollbildanwendung
+    private const int QUNS_RUNNING_D3D_FULL_SCREEN = 3;   // Spiel im echten Vollbild
+    private const int QUNS_PRESENTATION_MODE = 4;         // Praesentation
+    private const int QUNS_APP = 7;                       // Store-App im Vollbild
+
+    /// <summary>
+    /// Meldet, ob gerade etwas den Bildschirm fuer sich beansprucht: ein Spiel im
+    /// Vollbild, eine Praesentation, eine Vollbildanwendung.
+    ///
+    /// Ein einziger Aufruf, keine Prozessliste, keine Liste bekannter Spiele. Was
+    /// er nicht sicher erwischt, ist ein Spiel im randlosen Fenster - Windows
+    /// meldet das je nach Spiel als Vollbild oder gar nicht. Deshalb bleibt der
+    /// Knopf daneben stehen und wird davon nicht angefasst.
+    ///
+    /// Bei einem Fehler kommt false zurueck. Lieber laeuft das Video weiter, als
+    /// dass der Hintergrund grundlos verschwindet.
+    /// </summary>
+    internal static bool VollbildAnwendungLaeuft()
+    {
+        try
+        {
+            if (SHQueryUserNotificationState(out int z) != 0) return false;
+            return z is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN
+                     or QUNS_PRESENTATION_MODE or QUNS_APP;
+        }
+        catch { return false; }
+    }
+
+    // ---------- Tastenkuerzel ----------
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    internal const uint MOD_ALT = 0x0001;
+    internal const uint MOD_CONTROL = 0x0002;
+    internal const uint MOD_NOREPEAT = 0x4000;   // Halten wiederholt nicht
+    internal const int WM_HOTKEY = 0x0312;
+
     /// <summary>Zeichnet das normale Windows-Hintergrundbild neu.</summary>
     internal static void RefreshDesktopWallpaper()
     {

@@ -63,8 +63,11 @@ internal static class Verkleinern
     /// Lohnt das Rechnen? Erst ab einem Fuenftel weniger Bildpunkten. Darunter
     /// stuenden Aufwand und der Qualitaetsverlust des Neukodierens gegen fast nichts.
     /// </summary>
-    private static bool Lohnt(int vb, int vh, int zb, int zh) =>
-        (long)zb * zh * 5 <= (long)vb * vh * 4;
+    private static bool Lohnt(int vb, int vh, int zb, int zh, bool halbieren) =>
+        // Bei halber Bildrate lohnt es immer: die Ersparnis kommt dann nicht aus den
+        // Bildpunkten, sondern aus der Zahl der Bilder. Auch ein Video, das ohnehin
+        // auf den Schirm passt, wird dafuer neu gerechnet.
+        halbieren || (long)zb * zh * 5 <= (long)vb * vh * 4;
 
     /// <summary>
     /// Masse der Flaeche, auf der gespielt wird. Dieselbe Wahl wie in
@@ -88,17 +91,35 @@ internal static class Verkleinern
     /// wird ein Video durch ein gleichnamiges anderes ersetzt, passt der Name
     /// nicht mehr und es wird neu gerechnet.
     /// </summary>
-    private static string Name(string video, int bb, int bh)
+    private static string Name(string video, int bb, int bh, bool halbieren)
     {
         long gr = 0;
         try { gr = new FileInfo(video).Length; } catch { }
-        return $"{Path.GetFileNameWithoutExtension(video)}-{gr}-{bb}x{bh}.mp4";
+        // Das "-h" haelt die halbierte Fassung von der vollen getrennt. Sonst bekaeme
+        // man nach dem Umlegen des Schalters die alte Datei zurueck.
+        return $"{Path.GetFileNameWithoutExtension(video)}-{gr}-{bb}x{bh}{(halbieren ? "-h" : "")}.mp4";
+    }
+
+    /// <summary>
+    /// Raeumt alles weg, was zu einem Video im Zwischenspeicher liegt: gerechnete
+    /// Fassungen, halbe Dateien, Merkzettel. Fuer den Fall, dass das Video geht.
+    /// </summary>
+    internal static void Vergessen(string video)
+    {
+        try
+        {
+            if (!Directory.Exists(Ordner)) return;
+            string stamm = Path.GetFileNameWithoutExtension(video) + "-";
+            foreach (string f in Directory.EnumerateFiles(Ordner, stamm + "*"))
+                try { File.Delete(f); } catch { }
+        }
+        catch { }
     }
 
     /// <summary>Die gerechnete Fassung, falls sie schon vorliegt.</summary>
-    internal static string? Fertig(string video, int bb, int bh)
+    internal static string? Fertig(string video, int bb, int bh, bool halbieren)
     {
-        string p = Path.Combine(Ordner, Name(video, bb, bh));
+        string p = Path.Combine(Ordner, Name(video, bb, bh, halbieren));
         return File.Exists(p) ? p : null;
     }
 
@@ -140,15 +161,15 @@ internal static class Verkleinern
     /// Dauert je nach Encoder Sekunden bis Minuten und gehoert deshalb nicht in
     /// den Bedienfaden.
     /// </summary>
-    internal static string? Erzeugen(string video, int bb, int bh)
+    internal static string? Erzeugen(string video, int bb, int bh, bool halbieren)
     {
         string? mpv = Hintergrund.MpvSuchen();
         if (mpv is null) return null;
 
-        string? schon = Fertig(video, bb, bh);
+        string? schon = Fertig(video, bb, bh, halbieren);
         if (schon is not null) return schon;
 
-        string ziel = Path.Combine(Ordner, Name(video, bb, bh));
+        string ziel = Path.Combine(Ordner, Name(video, bb, bh, halbieren));
 
         // Merkzettel fuer "lohnt nicht". Ohne ihn startet bei jedem Anzeigen und
         // bei jedem Programmstart ein mpv, nur um dieselbe Absage zu errechnen.
@@ -161,16 +182,21 @@ internal static class Verkleinern
         if (m is null) return null;
 
         var (zb, zh) = Ziel(m.Value.Breite, m.Value.Hoehe, bb, bh);
-        if (!Lohnt(m.Value.Breite, m.Value.Hoehe, zb, zh))
+        if (!Lohnt(m.Value.Breite, m.Value.Hoehe, zb, zh, halbieren))
         {
             Hintergrund.Notiz($"Verkleinern: {m.Value.Breite}x{m.Value.Hoehe} auf {bb}x{bh} lohnt nicht, gemerkt");
             try { Directory.CreateDirectory(Ordner); File.WriteAllBytes(nein, []); } catch { }
             return null;
         }
 
+        // Halbe Bildrate, auf ganze Bilder gerundet. 59,94 wird so zu 30.
+        double zielBilder = halbieren
+            ? Math.Max(1, Math.Round(m.Value.Bilder / 2))
+            : m.Value.Bilder;
+
         // Bildpunkte mal Bilder mal 0,05 Bit. Ergibt fuer 1920x804 bei 60 Bildern
         // rund 4,6 Mbit - die Groessenordnung, mit der die Messung oben lief.
-        long rate = Math.Clamp((long)(zb * (double)zh * m.Value.Bilder * 0.05), 1_000_000, 20_000_000);
+        long rate = Math.Clamp((long)(zb * (double)zh * zielBilder * 0.05), 1_000_000, 20_000_000);
 
         string halb = ziel + ".teil";
         try
@@ -190,7 +216,9 @@ internal static class Verkleinern
             Laufen(mpv,
             [
                 "--no-config", "--no-audio",
-                $"--vf=scale={zb}:{zh}",
+                halbieren
+                    ? $"--vf=scale={zb}:{zh},fps={zielBilder.ToString(CultureInfo.InvariantCulture)}"
+                    : $"--vf=scale={zb}:{zh}",
                 "--ovc=" + enc,
                 $"--ovcopts=b={rate}",
                 "--of=mp4", "--o=" + halb, video,
@@ -205,8 +233,9 @@ internal static class Verkleinern
                 {
                     File.Move(halb, ziel, overwrite: true);
                     Hintergrund.Notiz($"Verkleinern: {Path.GetFileName(video)} " +
-                        $"{m.Value.Breite}x{m.Value.Hoehe} -> {zb}x{zh} mit {enc} " +
-                        $"in {uhr.ElapsedMilliseconds} ms");
+                        $"{m.Value.Breite}x{m.Value.Hoehe} -> {zb}x{zh}" +
+                        (halbieren ? $" bei {zielBilder:0} Bildern" : "") +
+                        $" mit {enc} in {uhr.ElapsedMilliseconds} ms");
                     return ziel;
                 }
                 if (File.Exists(halb)) File.Delete(halb);
@@ -285,9 +314,10 @@ internal static class Verkleinern
         Pruefe("1920x1080 auf 1280x720", Ziel(1920, 1080, 1280, 720) == (1280, 720));
         Pruefe("gerade Zahlen", Ziel(1999, 1001, 1000, 1000).Breite % 2 == 0);
         Pruefe("Unsinn bleibt Unsinn", Ziel(0, 0, 1920, 1080) == (0, 0));
-        Pruefe("Faktor drei lohnt", Lohnt(3440, 1440, 1920, 804));
-        Pruefe("gleich gross lohnt nicht", !Lohnt(1920, 1080, 1920, 1080));
-        Pruefe("ein Zehntel weniger lohnt nicht", !Lohnt(1920, 1080, 1820, 1024));
+        Pruefe("Faktor drei lohnt", Lohnt(3440, 1440, 1920, 804, false));
+        Pruefe("gleich gross lohnt nicht", !Lohnt(1920, 1080, 1920, 1080, false));
+        Pruefe("ein Zehntel weniger lohnt nicht", !Lohnt(1920, 1080, 1820, 1024, false));
+        Pruefe("halbe Bildrate lohnt immer", Lohnt(1920, 1080, 1920, 1080, true));
 
         return fehler;
     }

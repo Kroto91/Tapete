@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 
 namespace Tapete;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
 
         BildschirmeFuellen();
         PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
+        BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
         AutostartSchalter.IsChecked = Settings.Autostart;
 
         DragEnter += (_, e) => { if (HatVideos(e)) ZiehFlaeche.Visibility = Visibility.Visible; };
@@ -110,7 +112,60 @@ public partial class MainWindow : Window
     private void Ausschalten(object sender, RoutedEventArgs e) => Programm.HintergrundAus();
 
     private void SpielmodusGeklickt(object sender, RoutedEventArgs e) =>
-        Programm.Spielmodus = !Programm.Spielmodus;
+        Programm.SpielmodusUmschalten();
+
+    /// <summary>
+    /// Legt ein Video in den Papierkorb, nicht endgueltig geloescht. Ein Fehlklick
+    /// laesst sich damit zuruecknehmen.
+    ///
+    /// Laeuft das Video gerade, haelt mpv die Datei offen - deshalb erst abschalten.
+    /// Und der Zwischenspeicher muss mit weg, sonst bleibt die gerechnete Fassung
+    /// als Waise liegen.
+    /// </summary>
+    /// <summary>
+    /// Baut das Kontextmenue beim Rechtsklick und merkt sich dabei die Kachel.
+    ///
+    /// Im XAML ging das zweimal schief. Ein ContextMenu haengt in einem eigenen Baum;
+    /// erst nannte die Rueckfrage am 01.09.2026 das falsche Video - Rechtsklick auf
+    /// zzz-probe-zwei.mp4, gefragt wurde nach yama-no-kami.mp4 -, dann loeste der
+    /// Menuepunkt gar nicht mehr aus. Ohne Probe waere das falsche Video im Papierkorb
+    /// gelandet.
+    ///
+    /// Hier ist sender die angeklickte Kachel selbst, und das Video steckt fest im
+    /// Menuepunkt. Da kann nichts mehr danebengreifen.
+    /// </summary>
+    private void KachelRechtsklick(object sender, MouseButtonEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is not VideoItem item) return;
+
+        var punkt = new MenuItem { Header = "In den Papierkorb" };
+        punkt.Click += (_, _) => Entfernen(item);
+
+        var menue = new ContextMenu { PlacementTarget = (UIElement)sender };
+        menue.Items.Add(punkt);
+        menue.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private void Entfernen(VideoItem item)
+    {
+        string name = Path.GetFileName(item.Pfad);
+        if (MessageBox.Show(this, $"„{name}“ in den Papierkorb legen?", "Video entfernen",
+                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+            return;
+
+        if (string.Equals(Programm.AktuellesVideo, item.Pfad, StringComparison.OrdinalIgnoreCase))
+            Programm.HintergrundAus();
+
+        try
+        {
+            Verkleinern.Vergessen(item.Pfad);
+            FileSystem.DeleteFile(item.Pfad, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+        }
+        catch (Exception ex) { FehlerZeigen(ex.Message); }
+
+        Neuladen();
+    }
 
     private void OrdnerOeffnen(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Settings.VideoOrdner}\"") { UseShellExecute = true });
@@ -231,6 +286,19 @@ public partial class MainWindow : Window
         Programm.Einstellungen.BeiVollbildPausieren = an;
         Programm.Einstellungen.Speichern();
         Programm.PauseRegelAnwenden(an);
+    }
+
+    /// <summary>
+    /// Der Schalter wirkt beim Umrechnen, nicht beim Abspielen. Deshalb den Hintergrund
+    /// neu aufbauen: Tapete sucht dann die Fassung, die zur neuen Wahl passt, und legt
+    /// sie an, falls es sie noch nicht gibt.
+    /// </summary>
+    private void BildrateGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Programm.Einstellungen.BildrateHalbieren = BildrateSchalter.IsChecked == true;
+        Programm.Einstellungen.Speichern();
+        Programm.HintergrundNeuAufbauen();
     }
 
     private void AutostartGeaendert(object sender, RoutedEventArgs e)

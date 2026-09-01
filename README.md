@@ -17,14 +17,17 @@ Videos kommen nach `Videos\Tapeten`, siehe unten.
 
 ## Bedienen
 
-Videos gehören nach `%USERPROFILE%\Videos\Tapeten`. Der Knopf „“ oder
+Videos gehören nach `%USERPROFILE%\Videos\Tapeten`. Der Knopf „Video hinzufügen“ oder
 Ziehen und Ablegen ins Fenster kopiert sie dorthin. Eine Kachel anklicken macht das
-Video zum Hintergrund, „“ stellt den normalen Windows-Hintergrund wieder her.
+Video zum Hintergrund, „Aus“ stellt den normalen Windows-Hintergrund wieder her.
+
+Ein Rechtsklick auf eine Kachel bietet „In den Papierkorb“ an. Nach einer Rückfrage wandert
+das Video in den Papierkorb, nicht ins Nichts. Ein Fehlklick lässt sich von dort zurückholen.
 
 Schließt man das Fenster, läuft Tapete im Infobereich neben der Uhr weiter. Doppelklick
-holt es zurück, Rechtsklick hat „“.
+holt es zurück, Rechtsklick hat „Beenden“.
 
-Unten stehen drei Schalter.
+Unten stehen vier Schalter.
 
 „Bildschirm“ bestimmt, auf welchem Monitor das Video läuft, oder ob es über alle
 zusammen geht. Ohne eigene Wahl ist es der Hauptbildschirm.
@@ -32,6 +35,10 @@ zusammen geht. Ohne eigene Wahl ist es der Hauptbildschirm.
 „Pause wenn verdeckt“ hält das Video an, sobald kein Stück Desktop mehr zu sehen ist.
 Geprüft wird die tatsächlich freie Fläche, nicht nur das Vordergrundfenster: Zwei
 Fenster nebeneinander lösen die Pause also aus.
+
+„Halbe Bildrate“ rechnet das Video einmalig auf die halbe Bildrate herunter. Ab Werk aus,
+weil man das im Gegensatz zur Auflösung sieht. Wie viel es spart, hängt stark vom Video ab;
+Zahlen stehen weiter unten.
 
 „Mit Windows starten“ legt eine Verknüpfung im Autostart-Ordner an. Tapete startet
 dann ohne Fenster und setzt den zuletzt gewählten Hintergrund.
@@ -45,6 +52,19 @@ Dekodiersitzung auf der Grafikkarte. Ein zweiter Klick holt dasselbe Video zurü
 Schneller geht es über das Symbol neben der Uhr. Rechtsklick, „Spielmodus“ anklicken. Dafür
 muss das Fenster nicht offen sein, und wer gleich spielen will, hat es nicht offen.
 
+Tapete merkt außerdem selbst, wann etwas den Bildschirm für sich beansprucht, schaltet den
+Spielmodus dann ein und danach wieder aus. Dafür fragt es alle drei Sekunden eine einzige
+Auskunft bei Windows ab, dieselbe, nach der auch Benachrichtigungen zurückgehalten werden.
+Es wird keine Liste bekannter Spiele geführt und keine Prozessliste durchsucht. Was von Hand
+geschaltet wurde, lässt die Automatik stehen.
+
+Ein Spiel im randlosen Fenster meldet Windows je nach Spiel als Vollbild oder gar nicht;
+deshalb bleibt der Knopf daneben stehen. Ein Video im Vollbild zählt auch als Vollbild, der
+Hintergrund ruht dann ebenfalls.
+
+Strg+Alt+G schaltet um, auch mitten aus einem Spiel heraus. Ist die Tastenfolge schon
+vergeben, steht das im Protokoll und alles andere läuft weiter.
+
 Der Schalter „Pause wenn verdeckt“ macht etwas Ähnliches, aber nicht dasselbe. Er hält das
 Video an, solange ein Fenster den Desktop verdeckt, und mpv läuft dabei weiter. Bei einem
 Spiel im randlosen Fenster, oder einem auf dem zweiten Monitor, bleibt ein Stück Desktop
@@ -56,7 +76,7 @@ an, bleibt der Hintergrund aus, bis er wieder abgeschaltet wird.
 ## Aktualisierungen
 
 Tapete fragt beim Start einmal bei GitHub nach, ob eine neuere Fassung vorliegt. Wenn ja,
-erscheint im Fenster ein Knopf „“; ein Klick lädt das Setup und startet es.
+erscheint im Fenster ein Knopf „Neu: x.y.z“; ein Klick lädt das Setup und startet es.
 Klappt die Abfrage nicht, etwa ohne Netz, bleibt der Knopf weg und es kommt keine Meldung.
 
 Heruntergeladen wird nur von `github.com` und nur über HTTPS. Die Adresse stammt aus einer
@@ -100,9 +120,16 @@ Gemessen am 31. August 2026 auf einer Radeon RX 7800 XT, jeweils bildschirmfüll
 | 1920×804, 60 fps (gerechnet) | 2,2 % | 9,4 % |
 | 1920×804, 30 fps (gerechnet) | 1,1 % | 4,8 % |
 
-Die Bildrate lässt Tapete unangetastet. Sie zu halbieren spart noch einmal gut das Doppelte,
-ist aber im Gegensatz zur Auflösung zu sehen: mehr Bildpunkte, als der Bildschirm hat, kann
-er ohnehin nicht darstellen, weniger Bilder je Sekunde dagegen schon.
+Von allein lässt Tapete die Bildrate unangetastet, denn man sieht sie, anders als die
+Auflösung: mehr Bildpunkte, als der Bildschirm hat, kann er ohnehin nicht darstellen,
+weniger Bilder je Sekunde dagegen schon. Wer sie trotzdem senken will, hat dafür den Schalter
+„Halbe Bildrate“.
+
+Was der bringt, schwankt stark. Bei 1920×804 halbierte sich die Dekodierlast, 9,4 gegen
+4,8 Prozent. Bei 3440×1440 waren am 01.09.2026 nur 20,0 gegen 14,9 Prozent zu messen. Der
+zweite Vergleich hinkt allerdings: dort steht ein Original mit 30 Mbit gegen eine gerechnete
+Fassung mit 7 Mbit, es ändert sich also nicht nur die Bildrate. Und die Messwerte streuen
+zwischen zwei Durchgängen um einige Prozentpunkte.
 
 Kodiert wird mit derselben `mpv.exe`, die auch abspielt. Sie bringt libavcodec mit, ein
 zweites Programm ist dafür nicht nötig. Versucht werden nacheinander die Hardware-Encoder

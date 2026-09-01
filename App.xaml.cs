@@ -2,6 +2,7 @@ using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Interop;
 using Forms = System.Windows.Forms;
 
 namespace Tapete;
@@ -23,6 +24,16 @@ public partial class App : Application
     private MainWindow? _fenster;
     private Forms.NotifyIcon? _tray;
     private Forms.ToolStripMenuItem? _spielEintrag;
+
+    /// <summary>True, wenn die Automatik eingeschaltet hat und nicht der Nutzer.</summary>
+    private bool _spielAutomatisch;
+
+    /// <summary>Merkt den letzten Stand, damit nur der Wechsel zaehlt. Siehe SpielAutomatikStarten.</summary>
+    private bool _zuletztVollbild;
+
+    private System.Windows.Threading.DispatcherTimer? _spielWacht;
+    private HwndSource? _quelle;
+    private const int HotkeyKennung = 0xA71;
 
     /// <summary>Das gewaehlte Video. Siehe AktuellesVideo.</summary>
     private string? _original;
@@ -53,6 +64,8 @@ public partial class App : Application
 
         _fenster = new MainWindow();
         TrayAufbauen();
+        TastenkuerzelAnmelden();
+        SpielAutomatikStarten();
 
         bool versteckt = e.Args.Any(a => a.Equals("--versteckt", StringComparison.OrdinalIgnoreCase));
         if (!versteckt) _fenster.Show();
@@ -146,6 +159,94 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Von Hand umgeschaltet. Danach haelt sich die Automatik heraus, bis das naechste
+    /// Spiel anfaengt oder aufhoert - wer selbst schaltet, will nicht ueberstimmt werden.
+    /// </summary>
+    public void SpielmodusUmschalten()
+    {
+        _spielAutomatisch = false;
+        Spielmodus = !Spielmodus;
+    }
+
+    /// <summary>
+    /// Fragt Windows alle drei Sekunden, ob eine Vollbildanwendung laeuft. Das ist ein
+    /// einziger Aufruf je Takt, keine Prozessliste und keine Liste bekannter Spiele.
+    ///
+    /// Gehandelt wird nur beim Wechsel, nicht bei jedem Takt. Sonst schaltete die
+    /// Automatik einen von Hand beendeten Spielmodus drei Sekunden spaeter wieder an,
+    /// solange das Spiel laeuft.
+    ///
+    /// _spielAutomatisch trennt die beiden Wege: Was die Automatik eingeschaltet hat,
+    /// nimmt sie auch zurueck. Was von Hand gesetzt wurde, bleibt stehen.
+    /// </summary>
+    private void SpielAutomatikStarten()
+    {
+        _zuletztVollbild = Native.VollbildAnwendungLaeuft();
+        _spielWacht = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(3)
+        };
+        _spielWacht.Tick += (_, _) =>
+        {
+            bool spielt = Native.VollbildAnwendungLaeuft();
+            if (spielt == _zuletztVollbild) return;
+            _zuletztVollbild = spielt;
+
+            if (spielt && !Spielmodus)
+            {
+                Hintergrund.Notiz("Vollbildanwendung erkannt");
+                _spielAutomatisch = true;
+                Spielmodus = true;
+            }
+            else if (!spielt && Spielmodus && _spielAutomatisch)
+            {
+                Hintergrund.Notiz("Vollbildanwendung beendet");
+                _spielAutomatisch = false;
+                Spielmodus = false;
+            }
+        };
+        _spielWacht.Start();
+    }
+
+    /// <summary>
+    /// Strg+Alt+G schaltet den Spielmodus um, auch waehrend ein Spiel im Vordergrund ist.
+    /// Genau dafuer ist es da: An das Symbol neben der Uhr kommt man aus einem Vollbild
+    /// schlecht heran.
+    ///
+    /// EnsureHandle statt Show: Mit --versteckt wird das Fenster nie gezeigt und haette
+    /// sonst gar kein Handle, an dem der Tastendruck ankommen koennte.
+    ///
+    /// Ist die Tastenfolge schon vergeben, lehnt Windows sie ab. Dann steht das im
+    /// Protokoll und alles andere laeuft weiter; ein Fehlerdialog beim Start waere
+    /// laestiger als das fehlende Kuerzel.
+    /// </summary>
+    private void TastenkuerzelAnmelden()
+    {
+        try
+        {
+            IntPtr h = new WindowInteropHelper(_fenster!).EnsureHandle();
+            _quelle = HwndSource.FromHwnd(h);
+            _quelle?.AddHook(Fensternachricht);
+
+            bool ok = Native.RegisterHotKey(h, HotkeyKennung,
+                Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 'G');
+            Hintergrund.Notiz("Tastenkuerzel Strg+Alt+G: " + (ok ? "angemeldet" : "abgelehnt, vermutlich belegt"));
+        }
+        catch (Exception e)
+        {
+            Hintergrund.Notiz($"Tastenkuerzel: {e.GetType().Name}: {e.Message}");
+        }
+    }
+
+    private IntPtr Fensternachricht(IntPtr hwnd, int nachricht, IntPtr wp, IntPtr lp, ref bool behandelt)
+    {
+        if (nachricht != Native.WM_HOTKEY || wp.ToInt32() != HotkeyKennung) return IntPtr.Zero;
+        SpielmodusUmschalten();
+        behandelt = true;
+        return IntPtr.Zero;
+    }
+
     private void SpielmodusAnzeigen()
     {
         if (_spielEintrag is not null) _spielEintrag.Checked = Einstellungen.Spielmodus;
@@ -175,7 +276,8 @@ public partial class App : Application
         // Sonst faengt es mit dem Original an und reicht sie nach: Kodieren dauert
         // Sekunden bis Minuten und darf den Start nicht aufhalten.
         var (bb, bh) = Verkleinern.Bildschirmmasse(Einstellungen.Bildschirm);
-        string abspielen = Verkleinern.Fertig(pfad, bb, bh) ?? pfad;
+        bool halb = Einstellungen.BildrateHalbieren;
+        string abspielen = Verkleinern.Fertig(pfad, bb, bh, halb) ?? pfad;
 
         // problem faengt die Meldung aus dem Konstruktor ab. Sie wird ganz zum Schluss
         // noch einmal gesetzt, weil StandAktualisieren() dieselbe Zeile beschreibt und
@@ -202,7 +304,7 @@ public partial class App : Application
 
         // Nur wenn wirklich das Original spielt. Lief schon die gerechnete Fassung,
         // gibt es nichts zu tun.
-        if (_wallpaper is { Laeuft: true } && abspielen == pfad) VerkleinernAnstossen(pfad, bb, bh);
+        if (_wallpaper is { Laeuft: true } && abspielen == pfad) VerkleinernAnstossen(pfad, bb, bh, halb);
     }
 
     /// <summary>
@@ -213,7 +315,7 @@ public partial class App : Application
     /// Der Neuaufbau ist ein kurzer Aussetzer im Bild. Der faellt einmal an, gegen
     /// dauerhaft ein Drittel der Dekodierlast - gemessen, siehe Verkleinern.
     /// </summary>
-    private void VerkleinernAnstossen(string pfad, int bb, int bh)
+    private void VerkleinernAnstossen(string pfad, int bb, int bh, bool halbieren)
     {
         if (_rechnet) return;
         _rechnet = true;
@@ -221,7 +323,7 @@ public partial class App : Application
         Task.Run(() =>
         {
             string? klein = null;
-            try { klein = Verkleinern.Erzeugen(pfad, bb, bh); }
+            try { klein = Verkleinern.Erzeugen(pfad, bb, bh, halbieren); }
             catch (Exception e) { Hintergrund.Notiz($"Verkleinern warf {e.GetType().Name}: {e.Message}"); }
 
             Dispatcher.Invoke(() =>
@@ -278,7 +380,7 @@ public partial class App : Application
         // Dafuer muss das Fenster nicht geoeffnet werden - und wer gleich spielen
         // will, hat es nicht offen.
         _spielEintrag = new Forms.ToolStripMenuItem("Spielmodus", null,
-            (_, _) => Spielmodus = !Spielmodus)
+            (_, _) => SpielmodusUmschalten())
         { Checked = Einstellungen.Spielmodus };
         menu.Items.Add(_spielEintrag);
 
@@ -338,6 +440,12 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _spielWacht?.Stop();
+        if (_quelle is not null)
+        {
+            try { Native.UnregisterHotKey(_quelle.Handle, HotkeyKennung); } catch { }
+            _quelle.RemoveHook(Fensternachricht);
+        }
         if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
         base.OnExit(e);
     }
