@@ -52,6 +52,8 @@ public partial class EinstellungenFenster : Window
         BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
         KarussellSchalter.IsChecked = Programm.Einstellungen.KarussellAn;
         AutostartSchalter.IsChecked = Settings.Autostart;
+        SchonerSchalter.IsChecked = Bildschirmschoner.Eingetragen;
+        SchonerStandZeigen();
 
         StandZeigen();
         _laedt = false;
@@ -259,6 +261,30 @@ public partial class EinstellungenFenster : Window
         Programm.Einstellungen.BeiAkkuPausieren = an;
         Programm.Einstellungen.Speichern();
         Programm.AkkuRegelAnwenden(an);
+    }
+
+    private void SchonerStandZeigen()
+    {
+        if (!Bildschirmschoner.Eingetragen) { SchonerStand.Text = ""; return; }
+        int s = Bildschirmschoner.WartezeitSekunden;
+        SchonerStand.Text = s <= 0
+            ? "Eingetragen, aber in Windows ist keine Wartezeit gesetzt."
+            : $"Geht nach {s / 60} Minuten ohne Eingabe an.";
+    }
+
+    private void SchonerGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        bool an = SchonerSchalter.IsChecked == true;
+        if (!Bildschirmschoner.Eintragen(an))
+        {
+            _laedt = true;
+            SchonerSchalter.IsChecked = !an;
+            _laedt = false;
+            SchonerStand.Text = "Hat nicht geklappt, der Grund steht im Protokoll.";
+            return;
+        }
+        SchonerStandZeigen();
     }
 
     // ---------- Profile ----------

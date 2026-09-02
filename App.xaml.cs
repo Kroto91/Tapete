@@ -80,6 +80,26 @@ public partial class App : Application
             ? "Rechenprobe Schalter und Verteilung: in Ordnung"
             : "Rechenprobe Schalter und Verteilung FEHLER: " + string.Join("; ", probe3));
 
+        // Als Bildschirmschoner aufgerufen? Windows uebergibt /s zum Anzeigen,
+        // /c fuer die Einstellungen und /p mit einem Fensterhandle fuer die kleine
+        // Vorschau. Das muss vor der Einzelinstanz-Sperre geprueft werden: Sonst
+        // beendet sich der Schoner sofort wieder, weil das normale Tapete laeuft.
+        string schalterArg = e.Args.FirstOrDefault(a => a.StartsWith("/")) ?? "";
+        if (schalterArg.StartsWith("/s", StringComparison.OrdinalIgnoreCase))
+        {
+            SchonerStarten();
+            return;
+        }
+        if (schalterArg.StartsWith("/p", StringComparison.OrdinalIgnoreCase))
+        {
+            // Keine Vorschau im kleinen Fenster der Systemsteuerung. Sie kostet
+            // einen zweiten mpv fuer ein briefmarkengrosses Bild; das Feld bleibt
+            // schwarz, und das ist kein Fehler.
+            Hintergrund.Notiz("Schoner: Vorschau angefragt, wird nicht angeboten");
+            Shutdown();
+            return;
+        }
+
         // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
         _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
         if (!neu) { Hintergrund.Notiz("ENDE: schon eine Instanz da"); Shutdown(); return; }
@@ -100,6 +120,10 @@ public partial class App : Application
 
         bool versteckt = e.Args.Any(a => a.Equals("--versteckt", StringComparison.OrdinalIgnoreCase));
         if (!versteckt) _fenster.Show();
+
+        // /c heisst: der Nutzer hat in Windows auf "Einstellungen" geklickt.
+        if (schalterArg.StartsWith("/c", StringComparison.OrdinalIgnoreCase))
+            new EinstellungenFenster { Owner = _fenster }.Show();
 
         // Zuletzt gewaehltes Video wieder anwerfen.
         if (Einstellungen.Spielmodus)
@@ -665,6 +689,37 @@ public partial class App : Application
         var schalter = MpvSchalter(Einstellungen);
         Hintergrund.Notiz("mpv-Schalter: " + string.Join(" ", schalter));
         return schalter;
+    }
+
+    /// <summary>
+    /// Laeuft als Bildschirmschoner. Eigener, kurzer Weg: kein Symbol neben der Uhr,
+    /// kein Karussell, keine Aktualisierungsabfrage, keine Einzelinstanz-Sperre.
+    /// Nur ein Video auf schwarzem Grund, bis jemand eine Taste drueckt.
+    /// </summary>
+    private void SchonerStarten()
+    {
+        Einstellungen = Settings.Laden();
+        string? video = Einstellungen.LetztesVideo;
+        if (string.IsNullOrWhiteSpace(video) || !File.Exists(video))
+        {
+            try
+            {
+                video = Directory.EnumerateFiles(Settings.VideoOrdner)
+                    .Where(Hintergrund.IstUnterstuetzt)
+                    .OrderBy(p => Path.GetFileName(p), StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
+            }
+            catch { video = null; }
+        }
+        if (video is null)
+        {
+            Hintergrund.Notiz("Schoner ABBRUCH: kein Video da");
+            Shutdown();
+            return;
+        }
+
+        var schoner = new Bildschirmschoner();
+        schoner.Starten(video, MpvSchalter(Einstellungen));
     }
 
     // ---------- Profile ----------

@@ -80,6 +80,9 @@ Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
                        Programm startet dann ohne Fenster und setzt den
                        zuletzt gewählten Hintergrund.
 
+Als Bildschirmschoner  zeigt dasselbe Video im Vollbild, wenn der Rechner
+                       eine Weile unbenutzt war, siehe unten.
+
 
 Zwei Videos auf zwei Bildschirmen
 ---------------------------------
@@ -116,6 +119,23 @@ verteilt nur auf die übrigen.
 
 Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag "Nächstes Video"
 im Symbol neben der Uhr.
+
+
+Als Bildschirmschoner
+---------------------
+
+Der Haken im Zahnrad trägt Tapete bei Windows als Bildschirmschoner ein. Dazu
+entsteht neben der Programmdatei eine zweite namens Tapete.scr; Windows nimmt
+nur diese Endung an. Sie ist keine Kopie, sondern eine harte Verknüpfung auf
+dieselbe Datei und kostet deshalb keinen zusätzlichen Platz.
+
+Gezeigt wird das zuletzt gewählte Video im Vollbild, auf jedem Bildschirm. Jede
+Taste, jeder Klick und jede Mausbewegung beendet es wieder.
+
+War in Windows noch keine Wartezeit eingestellt, trägt Tapete fünf Minuten ein.
+Eine vorhandene bleibt, wie sie ist. Die kleine Vorschau in den
+Windows-Einstellungen bleibt schwarz; sie würde einen zweiten Abspieler für ein
+briefmarkengroßes Bild kosten.
 
 
 Das Bild füllt den Schirm
