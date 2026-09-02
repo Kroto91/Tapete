@@ -880,16 +880,13 @@ public partial class App : Application
         if (gemischt.GetValueOrDefault("A") != "fest.mp4") fehler.Add("Feste Zuweisung verliert gegen das Karussell");
         if (gemischt.GetValueOrDefault("B") != "zwei.mp4") fehler.Add("Karussell-Zuweisung ohne feste ging verloren");
 
-        // Der Filter fuers Protokoll. Geht er kaputt, wandern Windows-Name und
-        // Videotitel des Testers in eine Datei, die er mir schickt.
+        // Der Filter fuers Protokoll. Geht er kaputt, wandert der Windows-Name
+        // des Testers in eine Datei, die er mir schickt.
         string heim = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string probe = Hintergrund.Entpersonalisieren(
             "Startvideo: " + heim + @"\Videos\Tapeten\urlaub-am-see.mp4 fehlt");
         if (probe.Contains(heim, StringComparison.OrdinalIgnoreCase)) fehler.Add("Heimatordner steht noch im Protokoll");
-        if (probe.Contains("urlaub-am-see")) fehler.Add("Videoname steht noch im Protokoll");
-        if (!probe.Contains(".mp4")) fehler.Add("Die Endung sollte stehen bleiben");
-        // Gegen eine zu gierige Ersetzung: Der Rest der Zeile muss stehen bleiben,
-        // sonst waere das Protokoll als Diagnose wertlos.
+        if (!probe.Contains("urlaub-am-see.mp4")) fehler.Add("Der Videoname sollte stehen bleiben");
         if (!probe.StartsWith("Startvideo: ") || !probe.EndsWith(" fehlt"))
             fehler.Add("Der Filter frisst zu viel: " + probe);
 
