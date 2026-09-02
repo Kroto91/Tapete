@@ -57,7 +57,8 @@ HDR-Ausgabe            nur mit HDR-Bildschirm, eingeschaltetem HDR in Windows
                        gewöhnlichen Video bringt der Schalter nichts.
                        Eingeschaltet legt der Abspieler zusätzlich mpv-hdr.txt
                        neben das Protokoll; dort steht, was die Ausgabe
-                       tatsächlich gemacht hat.
+                       tatsächlich gemacht hat. Beim Ausschalten wird die Datei
+                       wieder weggeräumt.
 
 Pause wenn verdeckt    hält das Video an, sobald kein Stück Desktop mehr zu
                        sehen ist. Anders als der Spielmodus läuft der

@@ -245,9 +245,12 @@ public partial class EinstellungenFenster : Window
     private void HdrGeaendert(object sender, RoutedEventArgs e)
     {
         if (_laedt) return;
-        Programm.Einstellungen.Hdr = HdrSchalter.IsChecked == true;
+        bool an = HdrSchalter.IsChecked == true;
+        Programm.Einstellungen.Hdr = an;
         Programm.Einstellungen.Speichern();
         Programm.HintergrundNeuAufbauen();
+        // Nach dem Neuaufbau, nicht davor: Der alte Abspieler haelt die Datei offen.
+        if (!an) App.HdrProtokollAufraeumen();
     }
 
     /// <summary>

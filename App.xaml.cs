@@ -829,9 +829,7 @@ public partial class App : Application
             // R8G8B8A8_UNORM".
             schalter.Add("--d3d11-output-format=rgb10_a2");
             schalter.Add("--msg-level=vo=v");
-            schalter.Add("--log-file=" + Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Tapete", "mpv-hdr.txt"));
+            schalter.Add("--log-file=" + HdrProtokoll);
         }
         return schalter;
     }
@@ -851,6 +849,36 @@ public partial class App : Application
             foreach (var (schirm, video) in karussell) roh[schirm] = video;
         foreach (var (schirm, video) in fest) roh[schirm] = video;
         return roh;
+    }
+
+    /// <summary>
+    /// Das eigene Protokoll von mpv, das nur bei eingeschaltetem HDR entsteht.
+    /// An einer Stelle festgelegt, weil sonst der Pfad zum Schreiben und der zum
+    /// Aufraeumen auseinanderlaufen koennen.
+    /// </summary>
+    internal static string HdrProtokoll => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Tapete", "mpv-hdr.txt");
+
+    /// <summary>
+    /// Raeumt das HDR-Protokoll weg, wenn HDR ausgeschaltet wird. Sonst bleibt es
+    /// als Waise liegen und verwirrt beim naechsten Hineinschauen: eine
+    /// HDR-Datei, obwohl HDR aus ist.
+    ///
+    /// Erst nach dem Neuaufbau aufrufen, sonst haelt der alte mpv sie noch offen.
+    /// </summary>
+    internal static void HdrProtokollAufraeumen()
+    {
+        try
+        {
+            if (!File.Exists(HdrProtokoll)) return;
+            File.Delete(HdrProtokoll);
+            Hintergrund.Notiz("HDR aus, mpv-hdr.txt weggeraeumt");
+        }
+        catch (Exception e)
+        {
+            Hintergrund.Notiz($"mpv-hdr.txt liess sich nicht loeschen: {e.GetType().Name}: {e.Message}");
+        }
     }
 
     /// <summary>
