@@ -242,6 +242,12 @@ Das Programm schreibt bei jedem Start ein Protokoll:
 Darin steht Zeile für Zeile, wie weit der Start gekommen ist. Welche Zeile
 fehlt, sagt, wo es hakt.
 
+Das Protokoll ist zum Verschicken gedacht und enthält deshalb nichts
+Persönliches: Der eigene Benutzerordner steht als %USERPROFILE% darin, und
+Videos erscheinen als "Video 1", "Video 2" und so weiter, nur die Dateiendung
+bleibt stehen. Übrig bleibt, was für die Fehlersuche zählt: welcher Schritt,
+welche Maße, welcher Fehler.
+
 
 Herkunft und Lizenzen
 ---------------------

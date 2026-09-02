@@ -109,10 +109,57 @@ public sealed class Hintergrund : IDisposable
     /// Aufbau beim Anmelden zweimal fehlgeschlagen ist und ohne Fenster niemand die
     /// Fehlermeldung sieht. Haelt die letzten 200 Zeilen.
     /// </summary>
+    /// <summary>
+    /// Nimmt aus einer Protokollzeile alles heraus, was zur Person gehoert.
+    ///
+    /// Das Protokoll wandert per Mail zu mir; darin hat weder der Windows-Name
+    /// des Testers noch der Titel seiner Videosammlung etwas zu suchen. Was
+    /// bleibt, ist die Diagnose: welcher Schritt, welche Masse, welcher Fehler.
+    /// Entschieden am 02.09.2026 vom Nutzer.
+    ///
+    /// Videodateien bekommen eine laufende Nummer statt ihres Namens. Ein
+    /// blosses Wegstreichen wuerde zwei Videos ununterscheidbar machen, und
+    /// genau daran haengt die Fehlersuche bei mehreren Bildschirmen.
+    /// </summary>
+    private static readonly Dictionary<string, string> _videonummern = new(StringComparer.OrdinalIgnoreCase);
+
+    internal static string Entpersonalisieren(string text)
+    {
+        string heim = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (heim.Length > 0)
+            text = text.Replace(heim, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+
+        // Jeder Dateiname mit einer bekannten Videoendung wird zur Nummer. Die
+        // Endung bleibt stehen: Ein Format, das nicht laeuft, ist ein Befund.
+        return System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"[^" + Trenner + @"]+" + Trenner2 + @"([A-Za-z0-9]{2,5})",
+            treffer =>
+            {
+                string endung = treffer.Groups[1].Value;
+                if (!Endungen.Contains(endung)) return treffer.Value;
+                lock (_videonummern)
+                {
+                    if (!_videonummern.TryGetValue(treffer.Value, out string? nummer))
+                    {
+                        nummer = "<Video " + (_videonummern.Count + 1) + ">";
+                        _videonummern[treffer.Value] = nummer;
+                    }
+                    return nummer + "." + endung;
+                }
+            });
+    }
+
+    /// <summary>Zeichen, an denen ein Dateiname endet. Als Konstanten, weil ein
+    /// Backslash in einem Muster schnell zum Steuerzeichen wird.</summary>
+    private const string Trenner = @"\\/:*?""<>| ";
+    private const string Trenner2 = @"\.";
+
     internal static void Notiz(string text)
     {
         try
         {
+            text = Entpersonalisieren(text);
             string ordner = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tapete");
             Directory.CreateDirectory(ordner);

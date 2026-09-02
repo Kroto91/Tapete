@@ -756,7 +756,8 @@ public partial class App : Application
             JeBildschirm = new Dictionary<string, string>(Einstellungen.VideoJeBildschirm)
         };
         Einstellungen.Speichern();
-        Hintergrund.Notiz($"Profil \"{name}\" gespeichert, {Einstellungen.Profile[name].JeBildschirm.Count} Zuweisung(en)");
+        Hintergrund.Notiz($"Profil gespeichert, {Einstellungen.Profile[name].JeBildschirm.Count} Zuweisung(en), "
+            + $"{Einstellungen.Profile.Count} Profil(e) insgesamt");
     }
 
     /// <summary>
@@ -775,7 +776,7 @@ public partial class App : Application
         Einstellungen.Speichern();
 
         int weg = p.JeBildschirm.Count - Einstellungen.VideoJeBildschirm.Count;
-        Hintergrund.Notiz($"Profil \"{name}\" geladen, {Einstellungen.VideoJeBildschirm.Count} Zuweisung(en)"
+        Hintergrund.Notiz($"Profil geladen, {Einstellungen.VideoJeBildschirm.Count} Zuweisung(en)"
             + (weg > 0 ? $", {weg} uebergangen weil die Datei fehlt" : ""));
 
         // Das gemeinsame Video mitnehmen, wenn es noch da ist; sonst nur neu
@@ -789,7 +790,7 @@ public partial class App : Application
     {
         if (!Einstellungen.Profile.Remove(name)) return;
         Einstellungen.Speichern();
-        Hintergrund.Notiz($"Profil \"{name}\" geloescht");
+        Hintergrund.Notiz($"Profil geloescht, {Einstellungen.Profile.Count} uebrig");
     }
 
     public void AkkuRegelAnwenden(bool an)
@@ -878,6 +879,19 @@ public partial class App : Application
             new Dictionary<string, string> { ["A"] = "fest.mp4" });
         if (gemischt.GetValueOrDefault("A") != "fest.mp4") fehler.Add("Feste Zuweisung verliert gegen das Karussell");
         if (gemischt.GetValueOrDefault("B") != "zwei.mp4") fehler.Add("Karussell-Zuweisung ohne feste ging verloren");
+
+        // Der Filter fuers Protokoll. Geht er kaputt, wandern Windows-Name und
+        // Videotitel des Testers in eine Datei, die er mir schickt.
+        string heim = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string probe = Hintergrund.Entpersonalisieren(
+            "Startvideo: " + heim + @"\Videos\Tapeten\urlaub-am-see.mp4 fehlt");
+        if (probe.Contains(heim, StringComparison.OrdinalIgnoreCase)) fehler.Add("Heimatordner steht noch im Protokoll");
+        if (probe.Contains("urlaub-am-see")) fehler.Add("Videoname steht noch im Protokoll");
+        if (!probe.Contains(".mp4")) fehler.Add("Die Endung sollte stehen bleiben");
+        // Gegen eine zu gierige Ersetzung: Der Rest der Zeile muss stehen bleiben,
+        // sonst waere das Protokoll als Diagnose wertlos.
+        if (!probe.StartsWith("Startvideo: ") || !probe.EndsWith(" fehlt"))
+            fehler.Add("Der Filter frisst zu viel: " + probe);
 
         return fehler;
     }
