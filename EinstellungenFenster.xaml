@@ -127,10 +127,10 @@
                 <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,12"
                            Text="Ton ist ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem ein eigener Abspieler, dann kommt der Ton auch mehrfach." />
 
-                <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe versuchen"
+                <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe, gewöhnliche Videos mitrechnen"
                           Checked="HdrGeaendert" Unchecked="HdrGeaendert" />
                 <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Nur sinnvoll mit HDR-fähigem Bildschirm, eingeschaltetem HDR in Windows und einem Video, das selbst in HDR vorliegt. Bei einem gewöhnlichen Video bringt der Schalter nichts. Eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
+                           Text="Braucht einen HDR-fähigen Bildschirm und eingeschaltetes HDR in Windows. Liegt das Video selbst in HDR vor, wird es unverändert durchgereicht. Ein gewöhnliches Video rechnet der Abspieler beim Anzeigen auf den größeren Helligkeitsumfang hoch; das geschieht auf der Grafikkarte, es entsteht keine zweite Datei. Erfundene Helligkeit bleibt erfunden: Was die Aufnahme nie enthielt, kann auch das Umrechnen nicht zeigen. Eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
 
                 <TextBlock Text="Strom sparen" Style="{StaticResource Abschnitt}" />
 

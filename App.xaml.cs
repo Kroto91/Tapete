@@ -902,6 +902,16 @@ public partial class App : Application
             // 02.09.2026 im mpv-Protokoll: "Selected swapchain format
             // R8G8B8A8_UNORM".
             schalter.Add("--d3d11-output-format=rgb10_a2");
+            // Das eigentliche Umrechnen. Ohne diesen Schalter wandert ein
+            // gewoehnliches Video unveraendert in den HDR-Behaelter und sieht
+            // flau aus - so stand es bis zum 02.09.2026 in der Liesmich-Datei.
+            // libplacebo dehnt den Helligkeitsumfang stattdessen richtig, das
+            // laeuft auf der Grafikkarte und braucht keine zweite Datei.
+            //
+            // ponytail: Umkodieren waere der teurere Weg gewesen, eine Datei je
+            // Video und Wartezeit dafuer. Wenn sich zeigt, dass eine feste
+            // Spitzenhelligkeit noetig ist, kommt --target-peak dazu.
+            schalter.Add("--inverse-tone-mapping=yes");
             schalter.Add("--msg-level=vo=v");
             schalter.Add("--log-file=" + HdrProtokoll);
         }
@@ -980,6 +990,16 @@ public partial class App : Application
         if (!MpvSchalter(new Settings()).Contains("--no-audio")) fehler.Add("Ohne Ton fehlt --no-audio");
         if (!s.Contains("--brightness=-20")) fehler.Add("Helligkeit fehlt");
         if (s.Any(x => x.StartsWith("--saturation"))) fehler.Add("Saettigung 0 sollte gar nicht auftauchen");
+
+        // HDR haengt an drei Schaltern, die nur zusammen etwas taugen: der
+        // Kennzeichnung, den zehn Bit und dem Umrechnen. Faellt einer heraus,
+        // sieht das Bild flau aus, und niemand wuesste warum.
+        var hdr = MpvSchalter(new Settings { Hdr = true });
+        foreach (var noetig in new[] { "--target-colorspace-hint=yes", "--d3d11-output-format=rgb10_a2",
+                                       "--inverse-tone-mapping=yes" })
+            if (!hdr.Contains(noetig)) fehler.Add("HDR fehlt " + noetig);
+        if (MpvSchalter(new Settings { Hdr = false }).Any(x => x.StartsWith("--inverse-tone-mapping")))
+            fehler.Add("Umrechnen laeuft, obwohl HDR aus ist");
 
         // Die Rangfolge der beiden Verteilungsquellen. Kippt sie, wandert ein fest
         // zugewiesenes Video beim naechsten Karussellwechsel unbemerkt weg.
