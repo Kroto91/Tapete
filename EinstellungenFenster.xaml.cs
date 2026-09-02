@@ -45,6 +45,12 @@ public partial class EinstellungenFenster : Window
         StufenFuellen(TempoWahl, Tempostufen, Programm.Einstellungen.TempoProzent, 100);
         StufenFuellen(LautstaerkeWahl, Lautstufen, Programm.Einstellungen.Lautstaerke, 0);
 
+        foreach (var t in App.Themen) ThemaWahl.Items.Add(new ThemaEintrag(t.Datei, t.Name));
+        ThemaWahl.SelectedItem = ThemaWahl.Items.Cast<ThemaEintrag>()
+            .FirstOrDefault(t => t.Datei == Programm.Einstellungen.Thema)
+            ?? ThemaWahl.Items.Cast<ThemaEintrag>().First();
+
+        EffektSchalter.IsChecked = Programm.Einstellungen.Effekte;
         ProfileFuellen();
         HdrSchalter.IsChecked = Programm.Einstellungen.Hdr;
         AkkuSchalter.IsChecked = Programm.Einstellungen.BeiAkkuPausieren;
@@ -57,6 +63,13 @@ public partial class EinstellungenFenster : Window
 
         StandZeigen();
         _laedt = false;
+
+        // Escape schliesst. Das Fenster hat keine Titelleiste von Windows, also
+        // auch kein Alt+F4-Menue; ohne diese Zeile bleibt nur der Mausklick.
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape) { Close(); e.Handled = true; }
+        };
     }
 
     /// <summary>Sagt, wie viele Videas angekreuzt sind. Ohne Haken tut das Karussell nichts.</summary>
@@ -288,6 +301,27 @@ public partial class EinstellungenFenster : Window
             return;
         }
         SchonerStandZeigen();
+    }
+
+    private sealed record ThemaEintrag(string Datei, string Name)
+    {
+        public override string ToString() => Name;
+    }
+
+    private void EffekteGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Programm.Einstellungen.Effekte = EffektSchalter.IsChecked == true;
+        Programm.Einstellungen.Speichern();
+        Programm.EffektNeuStarten();
+    }
+
+    private void ThemaGewaehlt(object sender, SelectionChangedEventArgs e)
+    {
+        if (_laedt || ThemaWahl.SelectedItem is not ThemaEintrag t) return;
+        Programm.Einstellungen.Thema = t.Datei;
+        Programm.Einstellungen.Speichern();
+        Programm.ThemaAnwenden(t.Datei);
     }
 
     // ---------- Profile ----------

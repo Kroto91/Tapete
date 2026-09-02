@@ -41,6 +41,18 @@ dann von allein um. Ein Video im Vollbild zählt dabei auch als Vollbild.
 
 Hinter dem Zahnrad oben stehen die Einstellungen:
 
+Erscheinungsbild      vier zur Auswahl: Cyberpunk (Gelb auf Schwarz), Alarm
+                      (Rot auf Schwarz), HUD (Cyan und feine Linien) und
+                      Retro-Neon (Pink mit Rundungen). Der Wechsel wirkt
+                      sofort. Alle vier sind auf Lesbarkeit geprüft.
+
+Zeichenregen          läuft hinter den Kacheln und ist nur dort zu sehen, wo
+                      keine Kachel darüber liegt: rechts neben der letzten
+                      Spalte, unter der letzten Zeile, beim Suchen. Über einem
+                      Vorschaubild also nie. Jedes Aussehen hat seinen eigenen:
+                      Cyberpunk dichte Zeichen, Alarm einen ruhigen Datenstrom,
+                      HUD Nullen und Einsen, Retro grobe Blöcke. Abschaltbar.
+
 Bildschirm             auf welchem Monitor das Video läuft, oder auf jedem
                        einzeln. Ohne eigene Wahl der Hauptbildschirm.
 

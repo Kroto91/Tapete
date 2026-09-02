@@ -6,9 +6,9 @@
         Height="640" Width="1020" MinHeight="460" MinWidth="960"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        Background="{StaticResource Bg}"
+        Background="{DynamicResource Bg}"
         AllowDrop="True"
-        FontFamily="{StaticResource UiFont}"
+        FontFamily="{DynamicResource UiFont}"
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
 
@@ -25,11 +25,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Raster hinter allem. Liegt in derselben Zelle wie der Inhalt und
+             ueber alle vier Zeilen, damit die Linien nicht an den Abschnitten
+             abreissen. IsHitTestVisible=False, sonst schluckt es die Klicks. -->
+        <Rectangle Grid.RowSpan="4" Fill="{DynamicResource Raster}" IsHitTestVisible="False" />
+
         <!-- Titelleiste: ziehbar -->
         <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitelZiehen">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                <Ellipse Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center" />
-                <TextBlock x:Name="TitelText" Text="Tapete" Foreground="{StaticResource Dim}" FontSize="12"
+                <Ellipse Width="8" Height="8" Fill="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock x:Name="TitelText" Text="Tapete" Foreground="{DynamicResource Dim}" FontSize="12"
+                           FontFamily="{DynamicResource TechFont}"
                            Margin="9,0,0,0" VerticalAlignment="Center" />
                 <Button x:Name="SucheKnopf" Style="{StaticResource Zeile}" Content="Nach Aktualisierung suchen"
                         Click="SucheGeklickt" Margin="14,0,0,0" VerticalAlignment="Center"
@@ -47,21 +53,28 @@
         <!-- Kopfzeile -->
         <Grid Grid.Row="1" Margin="24,6,24,18">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Hintergrund wählen" Foreground="{StaticResource Text}"
-                           FontSize="22" FontWeight="SemiBold" />
-                <TextBlock x:Name="Unterzeile" Foreground="{StaticResource Dim}" FontSize="12.5"
-                           Margin="0,3,0,0" Text="Ein Video anklicken, mehr ist nicht nötig." />
+                <StackPanel Orientation="Horizontal">
+                    <!-- Marke links vom Titel: eine kurze Leuchtlinie. Traegt den
+                         technischen Ton, ohne Platz zu kosten. -->
+                    <Rectangle Width="3" Height="22" Fill="{DynamicResource Accent}"
+                               VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <TextBlock Text="{DynamicResource TitelText}" Foreground="{DynamicResource Text}"
+                               FontFamily="{DynamicResource TitelFont}"
+                               FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock x:Name="Unterzeile" Foreground="{DynamicResource Dim}" FontSize="12.5"
+                           Margin="13,4,0,0" Text="Ein Video anklicken, mehr ist nicht nötig." />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Grid Margin="0,0,8,0">
                     <TextBox x:Name="Suchfeld" Width="150" Height="30" Padding="8,0"
                              VerticalContentAlignment="Center" TextChanged="SuchfeldGeaendert"
-                             Background="{StaticResource Card}" Foreground="{StaticResource Text}"
-                             CaretBrush="{StaticResource Text}" BorderBrush="{StaticResource Line}"
+                             Background="{DynamicResource Card}" Foreground="{DynamicResource Text}"
+                             CaretBrush="{DynamicResource Accent}" BorderBrush="{DynamicResource Rand}"
                              BorderThickness="1" FontSize="12.5"
                              ToolTip="Zeigt nur Kacheln, deren Name den eingetippten Text enthält." />
                     <TextBlock x:Name="SuchePlatzhalter" Text="Suchen" IsHitTestVisible="False"
-                               Foreground="{StaticResource Dim}" FontSize="12.5"
+                               Foreground="{DynamicResource Dim}" FontSize="12.5"
                                VerticalAlignment="Center" Margin="9,0,0,0" />
                 </Grid>
                 <Button x:Name="SpielKnopf" Style="{StaticResource Ghost}" Content="Spielmodus"
@@ -80,6 +93,13 @@
 
         <!-- Kacheln -->
         <Grid Grid.Row="2">
+            <!-- Das Effektfeld liegt hinter den Kacheln und fuellt die ganze
+                 Inhaltsflaeche. Sichtbar ist es nur dort, wo keine Kachel darueber
+                 liegt: rechts neben der letzten Spalte, unter der letzten Zeile
+                 und beim Suchen. Ueber einem Vorschaubild also nie.
+                 ClipToBounds, damit nichts in die Kopf- oder Fusszeile laeuft. -->
+            <Canvas x:Name="EffektFeld" IsHitTestVisible="False" ClipToBounds="True" />
+
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,0,16,0"
                           HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl x:Name="Liste">
@@ -112,27 +132,32 @@
                         Visibility="Collapsed" IsHitTestVisible="False">
                 <TextBlock Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets" FontSize="40"
                            Foreground="#FF39404F" HorizontalAlignment="Center" />
-                <TextBlock Text="Noch kein Video da" Foreground="{StaticResource Text}" FontSize="15"
+                <TextBlock Text="Noch kein Video da" Foreground="{DynamicResource Text}" FontSize="15"
                            Margin="0,14,0,0" HorizontalAlignment="Center" />
-                <TextBlock Text="MP4-Datei einfach hierher ziehen." Foreground="{StaticResource Dim}"
+                <TextBlock Text="MP4-Datei einfach hierher ziehen." Foreground="{DynamicResource Dim}"
                            FontSize="12.5" Margin="0,5,0,0" HorizontalAlignment="Center" />
             </StackPanel>
 
             <!-- Overlay beim Ziehen -->
             <Border x:Name="ZiehFlaeche" Visibility="Collapsed" Background="#CC0F1115"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="2" CornerRadius="14"
+                    BorderBrush="{DynamicResource Accent}" BorderThickness="2" CornerRadius="14"
                     Margin="20,0,20,10" IsHitTestVisible="False">
-                <TextBlock Text="Loslassen zum Hinzufügen" Foreground="{StaticResource Text}" FontSize="15"
+                <TextBlock Text="Loslassen zum Hinzufügen" Foreground="{DynamicResource Text}" FontSize="15"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
         </Grid>
 
         <!-- Fußzeile -->
-        <Border Grid.Row="3" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
-                Background="{StaticResource Panel}" Padding="24,11">
+        <Border Grid.Row="3" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0"
+                Background="{DynamicResource Panel}" Padding="24,11">
             <Grid>
-                <TextBlock x:Name="Status" Foreground="{StaticResource Dim}" FontSize="12.5"
-                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,200,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,200,0">
+                    <Ellipse Width="6" Height="6" Fill="{DynamicResource Accent}"
+                             VerticalAlignment="Center" Margin="0,0,9,0" />
+                    <TextBlock x:Name="Status" Foreground="{DynamicResource Dim}" FontSize="12"
+                               FontFamily="{DynamicResource TechFont}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
                 <Button x:Name="UpdateKnopf" Visibility="Collapsed" HorizontalAlignment="Right"
                         Style="{StaticResource Ghost}" Click="UpdateGeklickt"
                         ToolTip="Laedt das Setup der neuen Fassung und startet es." />

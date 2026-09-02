@@ -107,6 +107,10 @@ public partial class App : Application
         Einstellungen = Settings.Laden();
         Hintergrund.Notiz("Einstellungen geladen. LetztesVideo=" + (Einstellungen.LetztesVideo ?? "null"));
 
+        // Vor dem ersten Fenster, sonst baut es sich mit dem Standardthema auf und
+        // wechselt gleich danach sichtbar um.
+        ThemaAnwenden(Einstellungen.Thema);
+
         // Reparatur: Wurde das Programm beim letzten Mal abgewuergt, koennen die
         // Desktop-Symbole noch ausgeblendet sein. Erst einmal wieder einschalten.
         Hintergrund.SymboleWiederherstellen();
@@ -739,6 +743,52 @@ public partial class App : Application
         var schoner = new Bildschirmschoner();
         schoner.Starten(video, MpvSchalter(Einstellungen));
     }
+
+    // ---------- Erscheinungsbild ----------
+
+    /// <summary>
+    /// Die Themen, die es gibt: Dateiname unter Themen/ und der Name, der im
+    /// Einstellungsfenster steht.
+    /// </summary>
+    internal static readonly (string Datei, string Name)[] Themen =
+    [
+        ("Cyber2077", "Cyberpunk, Gelb auf Schwarz"),
+        ("RotSchwarz", "Alarm, Rot auf Schwarz"),
+        ("Hud", "HUD, Cyan und feine Linien"),
+        ("Retro", "Retro-Neon, Pink und Rundungen"),
+    ];
+
+    /// <summary>
+    /// Tauscht das Erscheinungsbild im laufenden Programm.
+    ///
+    /// Ausgetauscht wird das erste zusammengefuehrte Woerterbuch. Weil alle Stile
+    /// mit DynamicResource darauf zugreifen, zeichnen sich die offenen Fenster von
+    /// selbst neu; ein Neustart ist nicht noetig.
+    /// </summary>
+    internal void ThemaAnwenden(string datei)
+    {
+        if (!Themen.Any(t => t.Datei == datei)) datei = "Hud";
+        try
+        {
+            var neu = new ResourceDictionary
+            {
+                Source = new Uri($"Themen/{datei}.xaml", UriKind.Relative)
+            };
+            var alt = Resources.MergedDictionaries.FirstOrDefault();
+            Resources.MergedDictionaries.Add(neu);
+            if (alt is not null) Resources.MergedDictionaries.Remove(alt);
+            Hintergrund.Notiz("Erscheinungsbild: " + datei);
+            // Der Effekt gehoert zum Thema und muss mit ihm wechseln; der alte
+            // liefe sonst mit den Zeiten des vorherigen weiter.
+            _fenster?.EffektStarten();
+        }
+        catch (Exception e)
+        {
+            Hintergrund.Notiz($"Erscheinungsbild {datei} ging nicht: {e.GetType().Name}: {e.Message}");
+        }
+    }
+
+    internal void EffektNeuStarten() => _fenster?.EffektStarten();
 
     // ---------- Profile ----------
 

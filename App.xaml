@@ -5,33 +5,35 @@
     <Application.Resources>
         <ResourceDictionary>
 
-            <!-- Farben -->
-            <Color x:Key="cBg">#FF0F1115</Color>
-            <Color x:Key="cPanel">#FF171A21</Color>
-            <Color x:Key="cCard">#FF1C2029</Color>
-            <Color x:Key="cCardHover">#FF242936</Color>
-            <Color x:Key="cLine">#FF2A2F3A</Color>
-            <Color x:Key="cText">#FFE7EAF0</Color>
-            <Color x:Key="cDim">#FF8B93A5</Color>
-            <Color x:Key="cAccent">#FF6C8CFF</Color>
+            <!-- Die Farben, Schriften und Formwerte kommen aus einem Thema unter
+                 Themen/. Welches geladen ist, entscheidet die Einstellung; getauscht
+                 wird zur Laufzeit, deshalb greifen die Stile unten mit DynamicResource
+                 darauf zu. Mit StaticResource bliebe der zuerst geladene Wert stehen. -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themen/Cyber2077.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-            <SolidColorBrush x:Key="Bg" Color="{StaticResource cBg}" />
-            <SolidColorBrush x:Key="Panel" Color="{StaticResource cPanel}" />
-            <SolidColorBrush x:Key="Card" Color="{StaticResource cCard}" />
-            <SolidColorBrush x:Key="CardHover" Color="{StaticResource cCardHover}" />
-            <SolidColorBrush x:Key="Line" Color="{StaticResource cLine}" />
-            <SolidColorBrush x:Key="Text" Color="{StaticResource cText}" />
-            <SolidColorBrush x:Key="Dim" Color="{StaticResource cDim}" />
-            <SolidColorBrush x:Key="Accent" Color="{StaticResource cAccent}" />
-
-            <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+            <!-- Sichtbarer Tastaturfokus. Ohne das zeichnet WPF seinen schwarz
+                 gepunkteten Standardrahmen, und der ist auf #0B0B10 unsichtbar.
+                 Der Skill fuehrt "visible-focus" als Auflage fuer diesen Stil. -->
+            <Style x:Key="Fokus">
+                <Setter Property="Control.Template">
+                    <Setter.Value>
+                        <ControlTemplate>
+                            <Border BorderBrush="{DynamicResource Accent}" BorderThickness="2"
+                                    CornerRadius="0" Margin="-3" SnapsToDevicePixels="True" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <!-- Schlichter Knopf -->
-            <Style x:Key="Ghost" TargetType="Button">
-                <Setter Property="Foreground" Value="{StaticResource Text}" />
+            <Style x:Key="Ghost" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
+                <Setter Property="Foreground" Value="{DynamicResource Text}" />
                 <Setter Property="Background" Value="Transparent" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
-                <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+                <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
                 <Setter Property="FontSize" Value="13" />
                 <Setter Property="Padding" Value="14,7" />
                 <Setter Property="Cursor" Value="Hand" />
@@ -39,7 +41,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="b" CornerRadius="8"
+                            <Border x:Name="b" CornerRadius="{DynamicResource EckRadius}"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="1">
@@ -47,8 +49,13 @@
                                                   Margin="{TemplateBinding Padding}" />
                             </Border>
                             <ControlTemplate.Triggers>
+                                <!-- Die Rueckmeldung sitzt im Rand, nicht in der Flaeche. Auf
+                                     einem so dunklen Grund kommt eine aufgehellte Flaeche nie
+                                     ueber 1,6:1; ein Rand in der Akzentfarbe liegt bei 9,2:1
+                                     und ist damit auch aus dem Augenwinkel zu sehen. -->
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}" />
+                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}" />
+                                    <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.4" />
@@ -62,13 +69,13 @@
             <!-- Betonter Knopf -->
             <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Ghost}">
                 <Setter Property="Foreground" Value="#FF0B0E14" />
-                <Setter Property="Background" Value="{StaticResource Accent}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+                <Setter Property="Background" Value="{DynamicResource Accent}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="b" CornerRadius="8" Background="{TemplateBinding Background}">
+                            <Border x:Name="b" CornerRadius="{DynamicResource EckRadius}" Background="{TemplateBinding Background}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                                   Margin="{TemplateBinding Padding}" />
                             </Border>
@@ -90,22 +97,29 @@
             </Style>
 
             <!-- Haken oben links auf der Kachel: laeuft dieses Video im Karussell mit? -->
-            <Style x:Key="KachelHaken" TargetType="CheckBox">
+            <Style x:Key="KachelHaken" TargetType="CheckBox">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="CheckBox">
-                            <Border x:Name="b" Width="24" Height="24" CornerRadius="7"
+                            <Border x:Name="b" Width="24" Height="24" CornerRadius="0"
                                     Background="#B3000000" BorderBrush="#66FFFFFF" BorderThickness="1">
+                                <!-- Unsichtbar, solange nichts angekreuzt ist. Vorher stand
+                                     das Haekchen mit 25 Prozent Deckkraft immer da, und ein
+                                     leerer Kasten sah aus wie ein gesetzter. Am 02.09.2026
+                                     im Bildschirmfoto des Nutzers aufgefallen: Zwoelf Kacheln
+                                     mit Haken, dazu die Meldung "kein Video angekreuzt". -->
                                 <TextBlock x:Name="haken" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="11" Foreground="#40FFFFFF"
+                                           FontSize="11" Foreground="{DynamicResource Bg}"
+                                           Visibility="Collapsed"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="b" Property="Background" Value="{StaticResource Accent}" />
-                                    <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}" />
-                                    <Setter TargetName="haken" Property="Foreground" Value="#FF0B0E14" />
+                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="haken" Property="Visibility" Value="Visible" />
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="b" Property="BorderBrush" Value="White" />
@@ -120,27 +134,28 @@
             <Style x:Key="Zeile" TargetType="Button" BasedOn="{StaticResource Ghost}">
                 <Setter Property="FontSize" Value="11" />
                 <Setter Property="Padding" Value="10,3" />
-                <Setter Property="Foreground" Value="{StaticResource Dim}" />
+                <Setter Property="Foreground" Value="{DynamicResource Dim}" />
             </Style>
 
             <!-- Fensterknopf oben rechts -->
-            <Style x:Key="Chrome" TargetType="Button">
+            <Style x:Key="Chrome" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
                 <Setter Property="Width" Value="42" />
                 <Setter Property="Height" Value="34" />
-                <Setter Property="Foreground" Value="{StaticResource Dim}" />
+                <Setter Property="Foreground" Value="{DynamicResource Dim}" />
                 <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
                 <Setter Property="FontSize" Value="10" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="b" Background="Transparent" CornerRadius="6">
+                            <Border x:Name="b" Background="Transparent" CornerRadius="0">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}" />
-                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource CardHover}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Text}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -178,7 +193,8 @@
             </Style>
 
             <!-- Kachel -->
-            <Style x:Key="Kachel" TargetType="Button">
+            <Style x:Key="Kachel" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
                 <Setter Property="Width" Value="228" />
                 <Setter Property="Height" Value="140" />
                 <Setter Property="Margin" Value="0,0,14,14" />
@@ -186,10 +202,10 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="rand" CornerRadius="12" Background="{StaticResource Card}"
-                                    BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            <Border x:Name="rand" CornerRadius="{DynamicResource EckRadius}" Background="{DynamicResource Card}"
+                                    BorderBrush="{DynamicResource Line}" BorderThickness="1"
                                     SnapsToDevicePixels="True">
-                                <Border CornerRadius="11" ClipToBounds="True">
+                                <Border CornerRadius="{DynamicResource EckRadius}" ClipToBounds="True">
                                     <Grid>
                                         <Image Source="{Binding Bild}" Stretch="UniformToFill" />
 
@@ -208,26 +224,61 @@
                                             </Border.Background>
                                         </Border>
 
+                                        <!-- Dateinamen in der gleichbreiten Schrift: Sie sind
+                                             technische Angaben, keine Fliesstexte, und tragen
+                                             den Ton der Oberflaeche mit. -->
                                         <TextBlock Text="{Binding Name}" Foreground="White"
-                                                   FontFamily="{StaticResource UiFont}" FontSize="12.5"
+                                                   FontFamily="{DynamicResource TechFont}" FontSize="11.5"
                                                    TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Bottom" Margin="12,0,34,10" />
 
+                                        <!-- Eckklammern. Der Skill nennt sie "decorative
+                                             brackets" und fuehrt sie als Merkmal dieses Stils.
+                                             Auf jeder Kachel gedaempft, an der laufenden in
+                                             der Leuchtfarbe. -->
+                                        <Path x:Name="klammerLO" Data="M 0,13 L 0,0 L 13,0"
+                                              Stroke="{DynamicResource Dim}" StrokeThickness="1"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              Margin="7,7,0,0" Opacity="{DynamicResource KlammerDeckkraft}" />
+                                        <Path x:Name="klammerRU" Data="M 13,0 L 13,13 L 0,13"
+                                              Stroke="{DynamicResource Dim}" StrokeThickness="1"
+                                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                              Margin="0,0,7,7" Opacity="{DynamicResource KlammerDeckkraft}" />
+
                                         <!-- Punkt zeigt: laeuft gerade -->
-                                        <Ellipse x:Name="punkt" Width="9" Height="9" Fill="{StaticResource Accent}"
+                                        <Ellipse x:Name="punkt" Width="9" Height="9" Fill="{DynamicResource Accent}"
                                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                  Margin="0,0,12,12" Visibility="Collapsed" />
                                     </Grid>
                                 </Border>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <!-- 2,3:1 gegen die Kachel war zu wenig, um die Kachel unter
+                                     der Maus zu erkennen. Der Rand in Akzentfarbe schafft
+                                     9,4:1 und macht zugleich klar, dass die Kachel anklickbar
+                                     ist. Die laufende Kachel bleibt daneben erkennbar, weil
+                                     ihr Rand doppelt so dick ist und der Punkt dazukommt. -->
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="rand" Property="BorderBrush" Value="#FF4A5266" />
+                                    <Setter TargetName="rand" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                 </Trigger>
                                 <DataTrigger Binding="{Binding Laeuft}" Value="True">
-                                    <Setter TargetName="rand" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="rand" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                     <Setter TargetName="rand" Property="BorderThickness" Value="2" />
                                     <Setter TargetName="punkt" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="klammerLO" Property="Stroke" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="klammerLO" Property="StrokeThickness" Value="2" />
+                                    <Setter TargetName="klammerLO" Property="Opacity" Value="1" />
+                                    <Setter TargetName="klammerRU" Property="Stroke" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="klammerRU" Property="StrokeThickness" Value="2" />
+                                    <Setter TargetName="klammerRU" Property="Opacity" Value="1" />
+                                    <!-- Leuchten nur hier, an genau einer Kachel. Ein Schatten je
+                                         Kachel waere zwoelfmal derselbe Aufwand fuer nichts. -->
+                                    <Setter TargetName="rand" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="{DynamicResource cAccent}" BlurRadius="18"
+                                                              ShadowDepth="0" Opacity="0.55" />
+                                        </Setter.Value>
+                                    </Setter>
                                 </DataTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -237,8 +288,8 @@
 
             <!-- Schalter -->
             <Style TargetType="CheckBox">
-                <Setter Property="Foreground" Value="{StaticResource Dim}" />
-                <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+                <Setter Property="Foreground" Value="{DynamicResource Dim}" />
+                <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
                 <Setter Property="FontSize" Value="12.5" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -255,11 +306,11 @@
                             </StackPanel>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="box" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="box" Property="Background" Value="{DynamicResource Accent}" />
                                     <Setter TargetName="knopf" Property="Fill" Value="White" />
                                     <Setter TargetName="knopf" Property="HorizontalAlignment" Value="Right" />
                                     <Setter TargetName="knopf" Property="Margin" Value="0,0,3,0" />
-                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Text}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

@@ -4,6 +4,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Input;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
@@ -43,6 +45,96 @@ public partial class MainWindow : Window
         // gezeigt wird.
         Programm.NeuigkeitGefunden += NeuigkeitZeigen;
         NeuigkeitZeigen();
+
+        EffektFeld.SizeChanged += (_, _) => EffektStarten();
+    }
+
+    /// <summary>
+    /// Der Zeichenregen des geladenen Themas.
+    ///
+    /// Er laeuft auf einer Ebene hinter den Kacheln und ist deshalb nur dort zu
+    /// sehen, wo keine Kachel darueber liegt: rechts neben der letzten Spalte,
+    /// unter der letzten Zeile und waehrend des Suchens. Ueber einem Vorschaubild
+    /// liegt er nie, das war die Bedingung des Nutzers vom 02.09.2026.
+    ///
+    /// Zeichenvorrat, Tempo, Dichte, Deckkraft und Groesse kommen aus dem Thema.
+    /// So ist es ein Bauteil und nicht vier, und jedes Aussehen bekommt trotzdem
+    /// seinen eigenen Charakter.
+    /// </summary>
+    internal void EffektStarten()
+    {
+        EffektFeld.Children.Clear();
+        if (!Programm.Einstellungen.Effekte) return;
+
+        double breite = EffektFeld.ActualWidth, hoehe = EffektFeld.ActualHeight;
+        if (breite < 40 || hoehe < 40) return;   // noch nicht gemessen
+
+        string zeichen = TryFindResource("EffektZeichen") as string ?? "01";
+        double tempo = TryFindResource("EffektTempo") as double? ?? 8;
+        int dichte = TryFindResource("EffektDichte") as int? ?? 20;
+        double deckkraft = TryFindResource("EffektDeckkraft") as double? ?? 0.25;
+        double groesse = TryFindResource("EffektGroesse") as double? ?? 12;
+        var farbe = TryFindResource("Accent") as Brush;
+        var schrift = TryFindResource("TechFont") as FontFamily;
+        if (zeichen.Length == 0 || farbe is null) return;
+
+        // Nach unten ausblenden, damit die Spalten nicht abgeschnitten wirken,
+        // sondern verschwinden.
+        var maske = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop(Colors.Transparent, 0),
+                new GradientStop(Colors.Black, 0.15),
+                new GradientStop(Colors.Black, 0.75),
+                new GradientStop(Colors.Transparent, 1)
+            }
+        };
+
+        var zufall = new Random();
+        double zeile = groesse * 1.15;
+        int laenge = (int)(hoehe / zeile) + 10;
+
+        for (int i = 0; i < dichte; i++)
+        {
+            var text = new System.Text.StringBuilder(laenge * 2);
+            for (int j = 0; j < laenge; j++)
+            {
+                text.Append(zeichen[zufall.Next(zeichen.Length)]);
+                if (j < laenge - 1) text.Append('\n');
+            }
+
+            var block = new TextBlock
+            {
+                Text = text.ToString(),
+                FontFamily = schrift,
+                FontSize = groesse,
+                Foreground = farbe,
+                Opacity = deckkraft * (0.6 + zufall.NextDouble() * 0.4),
+                LineHeight = zeile,
+                LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                OpacityMask = maske
+            };
+            Canvas.SetLeft(block, i * (breite / dichte));
+            EffektFeld.Children.Add(block);
+
+            var schub = new TranslateTransform();
+            block.RenderTransform = schub;
+
+            // Jede Spalte eigene Dauer, sonst faellt alles im Gleichschritt.
+            double dauer = tempo * (0.65 + zufall.NextDouble() * 0.7);
+            var lauf = new DoubleAnimation(
+                -hoehe * 1.1, hoehe, TimeSpan.FromSeconds(dauer))
+            {
+                RepeatBehavior = RepeatBehavior.Forever,
+                // Negativ heisst: mittendrin anfangen. Ohne das waere die Flaeche
+                // in den ersten Sekunden leer und fuellte sich erst von oben.
+                BeginTime = TimeSpan.FromSeconds(-zufall.NextDouble() * dauer)
+            };
+            schub.BeginAnimation(TranslateTransform.YProperty, lauf);
+        }
     }
 
     // ---------- Liste ----------

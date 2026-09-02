@@ -146,6 +146,18 @@ public sealed class Settings
     /// </summary>
     public bool BeiAkkuPausieren { get; set; } = true;
 
+    /// <summary>
+    /// Welches Erscheinungsbild geladen wird: der Dateiname unter Themen/ ohne
+    /// Endung. Faellt der Wert aus, nimmt das Programm Hud.
+    /// </summary>
+    public string Thema { get; set; } = "Cyber2077";
+
+    /// <summary>
+    /// Bewegte Effekte am Fensterrand. Ab Werk an; wer sie stoerend findet oder
+    /// auf Bewegung empfindlich reagiert, schaltet sie hier aus.
+    /// </summary>
+    public bool Effekte { get; set; } = true;
+
     // ---------- Profile ----------
 
     /// <summary>

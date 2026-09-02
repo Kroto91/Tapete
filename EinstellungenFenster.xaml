@@ -4,10 +4,11 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Einstellungen"
         Width="560" SizeToContent="Height"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        Background="{StaticResource Bg}"
-        FontFamily="{StaticResource UiFont}"
+        Background="{DynamicResource Bg}"
+        FontFamily="{DynamicResource UiFont}"
         TextOptions.TextFormattingMode="Ideal"
         UseLayoutRounding="True">
 
@@ -18,13 +19,14 @@
 
     <Window.Resources>
         <Style x:Key="Abschnitt" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="FontFamily" Value="{DynamicResource TechFont}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="0,20,0,10" />
         </Style>
         <Style x:Key="Hinweis" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource Dim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,4,0,0" />
@@ -34,7 +36,7 @@
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="{StaticResource Line}" BorderThickness="1">
+    <Border BorderBrush="{DynamicResource Line}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="36" />
@@ -42,20 +44,46 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
+            <Rectangle Grid.RowSpan="3" Fill="{DynamicResource Raster}" IsHitTestVisible="False" />
+
             <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitelZiehen">
-                <TextBlock Text="Einstellungen" Foreground="{StaticResource Dim}" FontSize="12"
+                <TextBlock Text="EINSTELLUNGEN" Foreground="{DynamicResource Dim}" FontSize="11.5"
+                           FontFamily="{DynamicResource TechFont}"
                            Margin="18,0,0,0" VerticalAlignment="Center" />
                 <Button Style="{StaticResource Chrome}" Content="&#xE8BB;" Click="Schliessen"
                         HorizontalAlignment="Right" Margin="0,1,4,0"
                         AutomationProperties.Name="Schließen" ToolTip="Schließen" />
             </Grid>
 
-            <StackPanel Grid.Row="1" Margin="24,0,24,8">
+            <!-- Rollbereich, weil das Fenster sonst mit dem Inhalt waechst. Am
+                 02.09.2026 war es rund 1230 Punkte hoch; auf einem Bildschirm mit
+                 1080 Zeilen waere der Knopf "Fertig" nicht mehr erreichbar gewesen,
+                 und weil das Fenster in der Groesse nicht veraenderbar ist, haette
+                 daran auch niemand etwas aendern koennen. -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+            <StackPanel Margin="24,0,24,8">
 
-                <TextBlock Text="Anzeige" Style="{StaticResource Abschnitt}" Margin="0,4,0,10" />
+                <TextBlock Text="Erscheinungsbild" Style="{StaticResource Abschnitt}" Margin="0,4,0,10" />
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Bildschirm" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Aussehen" Foreground="{DynamicResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="ThemaWahl" Width="260" HorizontalAlignment="Right"
+                              SelectionChanged="ThemaGewaehlt" />
+                </Grid>
+                <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,10"
+                           Text="Wirkt sofort, ohne Neustart. Alle vier sind auf Lesbarkeit geprüft; der Text steht in jedem mindestens im Verhältnis 4,5 zu 1 zum Hintergrund." />
+
+                <CheckBox x:Name="EffektSchalter" Content="Zeichenregen im Hintergrund"
+                          Checked="EffekteGeaendert" Unchecked="EffekteGeaendert" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Läuft hinter den Kacheln und ist nur in den freien Flächen zu sehen, nie über einem Vorschaubild. Jedes Aussehen hat seinen eigenen: Cyberpunk dichte Zeichen, Alarm einen ruhigen Datenstrom, HUD Nullen und Einsen, Retro grobe Blöcke." />
+
+                <TextBlock Text="Anzeige" Style="{StaticResource Abschnitt}" />
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Bildschirm" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="BildschirmWahl" Width="260" HorizontalAlignment="Right"
                               SelectionChanged="BildschirmGewaehlt" />
@@ -69,28 +97,28 @@
                 <TextBlock Text="Bild und Ton" Style="{StaticResource Abschnitt}" />
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Helligkeit" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Helligkeit" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="HelligkeitWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="HelligkeitGewaehlt" />
                 </Grid>
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Farben" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Farben" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="SaettigungWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="SaettigungGewaehlt" />
                 </Grid>
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Geschwindigkeit" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Geschwindigkeit" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="TempoWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="TempoGewaehlt" />
                 </Grid>
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Lautstärke" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Lautstärke" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="LautstaerkeWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="LautstaerkeGewaehlt" />
@@ -122,14 +150,14 @@
                           Checked="KarussellGeaendert" Unchecked="KarussellGeaendert" />
 
                 <Grid Style="{StaticResource Zeile}" Margin="0,14,0,12">
-                    <TextBlock Text="Ein Video bleibt" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Ein Video bleibt" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="MinutenWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="MinutenGewaehlt" />
                 </Grid>
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Reihenfolge" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Reihenfolge" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="ReihenfolgeWahl" Width="180" HorizontalAlignment="Right"
                               SelectionChanged="ReihenfolgeGewaehlt" />
@@ -142,7 +170,7 @@
                 <TextBlock Text="Profile" Style="{StaticResource Abschnitt}" />
 
                 <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Name" Foreground="{StaticResource Text}" FontSize="13"
+                    <TextBlock Text="Name" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="ProfilWahl" Width="260" HorizontalAlignment="Right"
                               IsEditable="True" SelectionChanged="ProfilGewaehlt" />
@@ -171,9 +199,10 @@
                 <TextBlock Style="{StaticResource Hinweis}"
                            Text="Zeigt dasselbe Video im Vollbild, wenn der Rechner eine Weile unbenutzt war. Jede Taste und jede Mausbewegung beendet es wieder." />
             </StackPanel>
+            </ScrollViewer>
 
-            <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
-                    Background="{StaticResource Panel}" Padding="24,12">
+            <Border Grid.Row="2" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0"
+                    Background="{DynamicResource Panel}" Padding="24,12">
                 <Button Style="{StaticResource Primary}" Content="Fertig" Click="Schliessen"
                         HorizontalAlignment="Right" />
             </Border>
