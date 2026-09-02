@@ -125,6 +125,17 @@ public partial class App : Application
         if (schalterArg.StartsWith("/c", StringComparison.OrdinalIgnoreCase))
             new EinstellungenFenster { Owner = _fenster }.Show();
 
+        // Ein Spielmodus, den nur die Automatik eingeschaltet hat, gilt nicht ueber
+        // einen Neustart hinweg. Sonst bleibt der Hintergrund weg, wenn der Rechner
+        // waehrend eines Spiels oder des Bildschirmschoners hart ausgegangen ist.
+        if (Einstellungen.Spielmodus && Einstellungen.SpielmodusAutomatisch)
+        {
+            Hintergrund.Notiz("Spielmodus stand nur automatisch an, wird zurueckgenommen");
+            Einstellungen.Spielmodus = false;
+            Einstellungen.SpielmodusAutomatisch = false;
+            Einstellungen.Speichern();
+        }
+
         // Zuletzt gewaehltes Video wieder anwerfen.
         if (Einstellungen.Spielmodus)
         {
@@ -435,7 +446,10 @@ public partial class App : Application
     /// </summary>
     public void SpielmodusUmschalten()
     {
+        // Von Hand geschaltet zaehlt als Entscheidung des Nutzers und ueberdauert
+        // deshalb einen Neustart.
         _spielAutomatisch = false;
+        Einstellungen.SpielmodusAutomatisch = false;
         Spielmodus = !Spielmodus;
     }
 
@@ -467,12 +481,16 @@ public partial class App : Application
             {
                 Hintergrund.Notiz("Vollbildanwendung erkannt");
                 _spielAutomatisch = true;
+                // Vor dem Setzen vermerken: Der Setter speichert, und danach soll
+                // in der Datei stehen, dass hier die Automatik am Werk war.
+                Einstellungen.SpielmodusAutomatisch = true;
                 Spielmodus = true;
             }
             else if (!spielt && Spielmodus && _spielAutomatisch)
             {
                 Hintergrund.Notiz("Vollbildanwendung beendet");
                 _spielAutomatisch = false;
+                Einstellungen.SpielmodusAutomatisch = false;
                 Spielmodus = false;
             }
         };

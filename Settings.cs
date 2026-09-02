@@ -18,6 +18,19 @@ public sealed class Settings
     public bool Spielmodus { get; set; }
 
     /// <summary>
+    /// Stand der Spielmodus nur an, weil die Automatik ihn eingeschaltet hat?
+    /// Dann wird er beim naechsten Start zurueckgenommen.
+    ///
+    /// Grund: Die Automatik schaltet bei jeder Vollbildanwendung ein, auch beim
+    /// eigenen Bildschirmschoner - und der laeuft genau dann, wenn niemand am
+    /// Rechner sitzt. Geht die Maschine in dem Moment hart aus, bliebe der
+    /// Spielmodus stehen und Tapete zeigte am naechsten Tag gar nichts mehr.
+    /// Am 02.09.2026 im Protokoll gesehen, zwei Sekunden nach dem Schoner:
+    /// "Vollbildanwendung beendet" und "Spielmodus: aus".
+    /// </summary>
+    public bool SpielmodusAutomatisch { get; set; }
+
+    /// <summary>
     /// Halbe Bildrate. Wirkt nicht beim Abspielen, sondern beim einmaligen Umrechnen:
     /// mpv wuerde sonst trotzdem jedes Bild dekodieren und erst danach welche weglassen.
     /// Ab Werk aus, weil man es im Gegensatz zur Aufloesung sieht.
