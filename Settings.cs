@@ -95,6 +95,44 @@ public sealed class Settings
     /// </summary>
     public Dictionary<string, string> VideoJeBildschirm { get; set; } = [];
 
+    // ---------- Bild und Ton ----------
+    //
+    // Alle vier gehen als Schalter an mpv und wirken erst beim naechsten Aufbau.
+    // Die Wertebereiche stammen aus `mpv.exe --list-options`, abgefragt am
+    // 01.09.2026 bei der ausgelieferten Fassung: Helligkeit und Saettigung -100
+    // bis 100 mit 0 als Normalwert, Tempo 0,01 bis 100 mit 1, Lautstaerke in
+    // Prozent. Tapete bietet davon nur grobe Stufen an, feiner braucht es auf
+    // einem Hintergrundvideo niemand.
+
+    /// <summary>Helligkeit, -100 bis 100. 0 heisst unveraendert.</summary>
+    public int Helligkeit { get; set; }
+
+    /// <summary>Farbsaettigung, -100 bis 100. 0 heisst unveraendert.</summary>
+    public int Saettigung { get; set; }
+
+    /// <summary>Wiedergabetempo in Prozent. 100 ist die Normalgeschwindigkeit.</summary>
+    public int TempoProzent { get; set; } = 100;
+
+    /// <summary>
+    /// Lautstaerke in Prozent, 0 heisst stumm. Ab Werk stumm: Bis Fassung 1.3.7
+    /// lief jedes Video zwangsweise ohne Ton, und ein Hintergrund, der nach dem
+    /// Aktualisieren ploetzlich Krach macht, waere eine unangenehme Ueberraschung.
+    /// </summary>
+    public int Lautstaerke { get; set; }
+
+    /// <summary>
+    /// HDR-Ausgabe versuchen. Ob Windows das fuer ein Fenster annimmt, das als
+    /// Kind unter dem Desktop haengt, ist offen; deshalb schreibt mpv bei
+    /// eingeschaltetem Schalter zusaetzlich ein eigenes Protokoll mit.
+    /// </summary>
+    public bool Hdr { get; set; }
+
+    /// <summary>
+    /// Video anhalten, sobald der Rechner auf Akku laeuft. Ohne Akku wirkungslos.
+    /// Ab Werk an, weil ein Hintergrundvideo im Akkubetrieb niemandem nuetzt.
+    /// </summary>
+    public bool BeiAkkuPausieren { get; set; } = true;
+
     private static string Ordner =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tapete");
 

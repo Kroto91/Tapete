@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -66,6 +67,11 @@ public partial class App : Application
         Hintergrund.Notiz(probe2.Count == 0
             ? "Rechenprobe Karussell: in Ordnung"
             : "Rechenprobe Karussell FEHLER: " + string.Join("; ", probe2));
+
+        var probe3 = SchalterProbe();
+        Hintergrund.Notiz(probe3.Count == 0
+            ? "Rechenprobe mpv-Schalter: in Ordnung"
+            : "Rechenprobe mpv-Schalter FEHLER: " + string.Join("; ", probe3));
 
         // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
         _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
@@ -485,9 +491,10 @@ public partial class App : Application
         }
 
         _wallpaper = new Hintergrund(abspielen, Einstellungen.Bildschirm, jeSchirm,
-            text => { problem = text; _fenster?.FehlerZeigen(text); })
+            SchalterMerken(), text => { problem = text; _fenster?.FehlerZeigen(text); })
         {
-            BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren
+            BeiVollbildPausieren = Einstellungen.BeiVollbildPausieren,
+            BeiAkkuPausieren = Einstellungen.BeiAkkuPausieren
         };
 
         // Nur merken, was auch wirklich laeuft. Sonst versucht Tapete bei jedem Start
@@ -572,6 +579,68 @@ public partial class App : Application
     public void PauseRegelAnwenden(bool an)
     {
         if (_wallpaper is not null) _wallpaper.BeiVollbildPausieren = an;
+    }
+
+    /// <summary>Die Schalter fuer den laufenden Aufbau, dazu die Zeile im Protokoll.</summary>
+    private List<string> SchalterMerken()
+    {
+        var schalter = MpvSchalter(Einstellungen);
+        Hintergrund.Notiz("mpv-Schalter: " + string.Join(" ", schalter));
+        return schalter;
+    }
+
+    public void AkkuRegelAnwenden(bool an)
+    {
+        if (_wallpaper is not null) _wallpaper.BeiAkkuPausieren = an;
+    }
+
+    /// <summary>
+    /// Die Einstellungen fuer Bild und Ton als mpv-Schalter. Zahlen immer mit
+    /// englischem Punkt: Auf einem deutschen Windows machte ToString() sonst
+    /// "1,25" daraus, und mpv nimmt das nicht an.
+    /// </summary>
+    internal static List<string> MpvSchalter(Settings Einstellungen)
+    {
+        var schalter = new List<string>
+        {
+            "--volume=" + Einstellungen.Lautstaerke,
+            "--speed=" + (Einstellungen.TempoProzent / 100.0).ToString(CultureInfo.InvariantCulture),
+        };
+        if (Einstellungen.Helligkeit != 0) schalter.Add("--brightness=" + Einstellungen.Helligkeit);
+        if (Einstellungen.Saettigung != 0) schalter.Add("--saturation=" + Einstellungen.Saettigung);
+        if (Einstellungen.Hdr)
+        {
+            // Ob Windows die HDR-Ausgabe fuer ein Fenster unter dem Desktop
+            // annimmt, weiss niemand. Deshalb schreibt mpv hier sein eigenes
+            // Protokoll mit: Darin steht, was die Ausgabe tatsaechlich gemacht
+            // hat, und nicht nur, dass der Schalter gesetzt war.
+            schalter.Add("--target-colorspace-hint=yes");
+            schalter.Add("--msg-level=vo=v");
+            schalter.Add("--log-file=" + Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Tapete", "mpv-hdr.txt"));
+        }
+        return schalter;
+    }
+
+    /// <summary>
+    /// Rechenprobe fuer die Schalterliste. Der eigentliche Grund ist das
+    /// Dezimalzeichen: Auf einem deutschen Windows macht ToString() aus 1,25 ein
+    /// "1,25", und mpv lehnt das ab - ein Fehler, den man erst am schwarzen Bild
+    /// merkt. Laeuft beim Start mit den beiden anderen Proben mit.
+    /// </summary>
+    internal static List<string> SchalterProbe()
+    {
+        var fehler = new List<string>();
+        var s = MpvSchalter(new Settings
+        {
+            TempoProzent = 125, Lautstaerke = 40, Helligkeit = -20, Saettigung = 0
+        });
+        if (!s.Contains("--speed=1.25")) fehler.Add("Tempo falsch: " + string.Join(" ", s));
+        if (!s.Contains("--volume=40")) fehler.Add("Lautstaerke fehlt");
+        if (!s.Contains("--brightness=-20")) fehler.Add("Helligkeit fehlt");
+        if (s.Any(x => x.StartsWith("--saturation"))) fehler.Add("Saettigung 0 sollte gar nicht auftauchen");
+        return fehler;
     }
 
     // ---------- Infobereich ----------

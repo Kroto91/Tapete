@@ -40,6 +40,13 @@ public partial class EinstellungenFenster : Window
         ReihenfolgeWahl.Items.Add("Der Reihe nach");
         ReihenfolgeWahl.SelectedIndex = Programm.Einstellungen.KarussellZufaellig ? 0 : 1;
 
+        StufenFuellen(HelligkeitWahl, Bildstufen, Programm.Einstellungen.Helligkeit, 0);
+        StufenFuellen(SaettigungWahl, Bildstufen, Programm.Einstellungen.Saettigung, 0);
+        StufenFuellen(TempoWahl, Tempostufen, Programm.Einstellungen.TempoProzent, 100);
+        StufenFuellen(LautstaerkeWahl, Lautstufen, Programm.Einstellungen.Lautstaerke, 0);
+
+        HdrSchalter.IsChecked = Programm.Einstellungen.Hdr;
+        AkkuSchalter.IsChecked = Programm.Einstellungen.BeiAkkuPausieren;
         PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
         BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
         KarussellSchalter.IsChecked = Programm.Einstellungen.KarussellAn;
@@ -91,6 +98,46 @@ public partial class EinstellungenFenster : Window
     private sealed record BildschirmEintrag(string Name, string Anzeige)
     {
         public override string ToString() => Anzeige;
+    }
+
+    /// <summary>
+    /// Grobe Stufen statt eines Schiebereglers. Ein Regler wuerde bei jeder
+    /// Zwischenstellung einen mpv-Neustart ausloesen, und feiner als das hier
+    /// stellt auf einem Hintergrundvideo ohnehin niemand.
+    /// </summary>
+    private sealed record Stufe(int Wert, string Text)
+    {
+        public override string ToString() => Text;
+    }
+
+    private static readonly Stufe[] Bildstufen =
+    [
+        new(-40, "viel weniger"), new(-20, "weniger"), new(0, "normal"),
+        new(20, "mehr"), new(40, "viel mehr")
+    ];
+
+    private static readonly Stufe[] Tempostufen =
+    [
+        new(50, "halbes Tempo"), new(75, "75 %"), new(100, "normal"),
+        new(150, "anderthalbfach"), new(200, "doppeltes Tempo")
+    ];
+
+    private static readonly Stufe[] Lautstufen =
+    [
+        new(0, "aus"), new(25, "leise"), new(50, "mittel"),
+        new(75, "laut"), new(100, "voll")
+    ];
+
+    /// <summary>
+    /// Fuellt eine Liste und waehlt den gespeicherten Wert aus. Passt keiner,
+    /// gilt der Normalwert; sonst zeigte die Liste etwas anderes an, als
+    /// tatsaechlich laeuft - genau der Fehler aus Fassung 1.3.4.
+    /// </summary>
+    private static void StufenFuellen(ComboBox liste, Stufe[] stufen, int wert, int normal)
+    {
+        foreach (var st in stufen) liste.Items.Add(st);
+        liste.SelectedItem = stufen.FirstOrDefault(st => st.Wert == wert)
+            ?? stufen.First(st => st.Wert == normal);
     }
 
     private sealed record MinutenEintrag(int Wert)
@@ -165,6 +212,52 @@ public partial class EinstellungenFenster : Window
         Programm.Einstellungen.KarussellMinuten = m.Wert;
         Programm.Einstellungen.Speichern();
         Programm.KarussellNeuAufbauen();
+    }
+
+    private void HelligkeitGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(HelligkeitWahl, w => Programm.Einstellungen.Helligkeit = w);
+
+    private void SaettigungGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(SaettigungWahl, w => Programm.Einstellungen.Saettigung = w);
+
+    private void TempoGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(TempoWahl, w => Programm.Einstellungen.TempoProzent = w);
+
+    private void LautstaerkeGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(LautstaerkeWahl, w => Programm.Einstellungen.Lautstaerke = w);
+
+    /// <summary>
+    /// Alle vier Werte gehen als Schalter an mpv und wirken erst beim Aufbau,
+    /// deshalb jedes Mal ein Neuaufbau. Der kostet rund eine halbe Sekunde
+    /// schwarzes Bild, weshalb es Stufen sind und kein Regler.
+    /// </summary>
+    private void BildwertUebernehmen(ComboBox liste, Action<int> setzen)
+    {
+        if (_laedt || liste.SelectedItem is not Stufe st) return;
+        setzen(st.Wert);
+        Programm.Einstellungen.Speichern();
+        Programm.HintergrundNeuAufbauen();
+    }
+
+    private void HdrGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Programm.Einstellungen.Hdr = HdrSchalter.IsChecked == true;
+        Programm.Einstellungen.Speichern();
+        Programm.HintergrundNeuAufbauen();
+    }
+
+    /// <summary>
+    /// Anders als die Bildwerte liest der Takt das erst zwei Sekunden spaeter,
+    /// ein Neuaufbau ist dafuer nicht noetig.
+    /// </summary>
+    private void AkkuGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        bool an = AkkuSchalter.IsChecked == true;
+        Programm.Einstellungen.BeiAkkuPausieren = an;
+        Programm.Einstellungen.Speichern();
+        Programm.AkkuRegelAnwenden(an);
     }
 
     private void ReihenfolgeGewaehlt(object sender, SelectionChangedEventArgs e)

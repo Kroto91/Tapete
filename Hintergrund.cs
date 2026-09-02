@@ -25,6 +25,14 @@ public sealed class Hintergrund : IDisposable
     private readonly Action<string>? _fehler;
     /// <summary>Geraetename auf eigenes Video. Wo nichts steht, gilt <see cref="VideoPfad"/>.</summary>
     private readonly IReadOnlyDictionary<string, string>? _jeBildschirm;
+
+    /// <summary>
+    /// Weitere Schalter fuer mpv, vom Aufrufer aus den Einstellungen gebaut:
+    /// Lautstaerke, Helligkeit, Saettigung, Tempo, HDR. Sie stehen hier bewusst
+    /// fertig und nicht als Einzelwerte, damit diese Klasse nichts ueber die
+    /// Einstellungen wissen muss.
+    /// </summary>
+    private readonly IReadOnlyList<string> _zusatz;
     /// <summary>Ein Eintrag je belegtem Bildschirm. Bei "*" mehrere, sonst einer.</summary>
     private readonly List<(Process Prozess, string Pipe)> _spieler = new();
     private bool _pausiert;
@@ -32,6 +40,13 @@ public sealed class Hintergrund : IDisposable
 
     public string VideoPfad { get; }
     public bool BeiVollbildPausieren { get; set; } = true;
+
+    /// <summary>
+    /// Anhalten, sobald der Rechner auf Akku laeuft. Wie
+    /// <see cref="BeiVollbildPausieren"/> erst vom Takt gelesen und deshalb als
+    /// Eigenschaft in Ordnung, nicht als Konstruktorparameter noetig.
+    /// </summary>
+    public bool BeiAkkuPausieren { get; set; } = true;
 
     /// <summary>
     /// Geraetename des Zielbildschirms, "*" fuer jeden einzeln, leer fuer den
@@ -54,11 +69,14 @@ public sealed class Hintergrund : IDisposable
     /// Aufbauen() jeden Startfehler - er waere ins Leere gelaufen.
     /// </summary>
     public Hintergrund(string videoPfad, string? bildschirm = null,
-        IReadOnlyDictionary<string, string>? videoJeBildschirm = null, Action<string>? fehler = null)
+        IReadOnlyDictionary<string, string>? videoJeBildschirm = null,
+        IReadOnlyList<string>? mpvZusatz = null, Action<string>? fehler = null)
     {
         VideoPfad = videoPfad;
         Bildschirm = bildschirm;
         _jeBildschirm = videoJeBildschirm;
+        // Ohne Angabe stumm, so wie es bis 1.3.7 fest verdrahtet war.
+        _zusatz = mpvZusatz ?? ["--volume=0"];
         _fehler = fehler;
         Aufbauen();
         SystemEvents.DisplaySettingsChanged += BildschirmGeaendert;
@@ -203,7 +221,7 @@ public sealed class Hintergrund : IDisposable
             // panscan zoomt stattdessen bis zum Rand und schneidet den Ueberstand
             // ab. Verzerrt wird nichts, dafuer waere keepaspect=no noetig.
             "--panscan=1.0",
-            "--volume=0", "--loop-file", "--keep-open", "--media-controls=no",
+            "--loop-file", "--keep-open", "--media-controls=no",
             "--force-window=yes", "--no-window-dragging", "--cursor-autohide=no",
             "--stop-screensaver=no", "--input-default-bindings=no", "--no-border",
             "--input-cursor=no", "--no-osc", "--no-config",
@@ -214,8 +232,13 @@ public sealed class Hintergrund : IDisposable
             // 3,85 auf 1,31 Prozent. Am Dekodierer aendert es nichts, der haengt
             // an Aufloesung und Bildrate des Videos.
             "--profile=fast",
-            "--input-ipc-server=" + pipe, "--geometry=-9999:0", video,
+            "--input-ipc-server=" + pipe, "--geometry=-9999:0",
         }) start.ArgumentList.Add(a);
+
+        // Die Schalter aus den Einstellungen, danach erst die Datei. mpv nimmt
+        // alles nach dem Dateinamen nicht mehr als Option an.
+        foreach (string a in _zusatz) start.ArgumentList.Add(a);
+        start.ArgumentList.Add(video);
 
         Process? prozess;
         try { prozess = Process.Start(start); }
@@ -371,11 +394,30 @@ public sealed class Hintergrund : IDisposable
     {
         if (_spieler.Count == 0 || _spieler.All(s => s.Prozess.HasExited)) return;
 
-        bool soll = BeiVollbildPausieren && Native.DesktopVerdeckt();
+        bool soll = (BeiVollbildPausieren && Native.DesktopVerdeckt()) || AufAkku();
         if (soll == _pausiert) return;
 
         _pausiert = soll;
+        Notiz($"Pause {(soll ? "an" : "aus")}, Akku: {AufAkku()}");
         AnMpv("{\"command\":[\"set_property\",\"pause\"," + (soll ? "true" : "false") + "]}");
+    }
+
+    /// <summary>
+    /// Laeuft der Rechner gerade auf Akku? Ein Rechner ohne Akku meldet
+    /// <c>NoSystemBattery</c> und faellt damit hier nie hinein; bei unbekanntem
+    /// Zustand wird nicht pausiert, denn ein stehendes Bild ohne Grund faellt
+    /// mehr auf als ein laufendes.
+    /// </summary>
+    private bool AufAkku()
+    {
+        if (!BeiAkkuPausieren) return false;
+        try
+        {
+            var stand = System.Windows.Forms.SystemInformation.PowerStatus;
+            return stand.PowerLineStatus == System.Windows.Forms.PowerLineStatus.Offline
+                && stand.BatteryChargeStatus != System.Windows.Forms.BatteryChargeStatus.NoSystemBattery;
+        }
+        catch { return false; }
     }
 
     private void Abbauen()

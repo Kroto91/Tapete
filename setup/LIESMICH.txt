@@ -43,9 +43,25 @@ Hinter dem Zahnrad oben stehen die Einstellungen:
 Bildschirm             auf welchem Monitor das Video läuft, oder auf jedem
                        einzeln. Ohne eigene Wahl der Hauptbildschirm.
 
+Helligkeit, Farben     stellen Bild und Sättigung nach. Ein Video, das hinter
+                       den Symbolen zu grell ist, wird hier dunkler.
+
+Geschwindigkeit        halbes bis doppeltes Tempo.
+
+Lautstärke             ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem
+                       ein eigener Abspieler, dann kommt auch der Ton mehrfach.
+
+HDR-Ausgabe            nur mit HDR-Bildschirm und eingeschaltetem HDR in
+                       Windows sinnvoll. Ob Windows das für den Hintergrund
+                       annimmt, ist ungeprüft; eingeschaltet legt der Abspieler
+                       zusätzlich mpv-hdr.txt neben das Protokoll.
+
 Pause wenn verdeckt    hält das Video an, sobald kein Stück Desktop mehr zu
                        sehen ist. Anders als der Spielmodus läuft der
                        Abspieler dabei weiter, das Bild steht nur still.
+
+Pause im Akkubetrieb   hält das Video an, sobald der Rechner ohne Netzstecker
+                       läuft. Ohne Akku ohne Wirkung.
 
 Halbe Bildrate         rechnet das Video einmalig auf die halbe Bildrate
                        herunter. Ab Werk aus, weil man das im Gegensatz zur

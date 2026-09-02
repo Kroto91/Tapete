@@ -66,12 +66,55 @@
                 <TextBlock Style="{StaticResource Hinweis}" Margin="0,4,0,0"
                            Text="Rechnet jedes Video einmalig auf die halbe Bildrate herunter. Spart Grafiklast, ist aber im Gegensatz zur Auflösung zu sehen." />
 
+                <TextBlock Text="Bild und Ton" Style="{StaticResource Abschnitt}" />
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Helligkeit" Foreground="{StaticResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="HelligkeitWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="HelligkeitGewaehlt" />
+                </Grid>
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Farben" Foreground="{StaticResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="SaettigungWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="SaettigungGewaehlt" />
+                </Grid>
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Geschwindigkeit" Foreground="{StaticResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="TempoWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="TempoGewaehlt" />
+                </Grid>
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Lautstärke" Foreground="{StaticResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="LautstaerkeWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="LautstaerkeGewaehlt" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,12"
+                           Text="Ton ist ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem ein eigener Abspieler, dann kommt der Ton auch mehrfach." />
+
+                <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe versuchen"
+                          Checked="HdrGeaendert" Unchecked="HdrGeaendert" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Nur sinnvoll mit HDR-fähigem Bildschirm und eingeschaltetem HDR in Windows. Ob Windows das für den Desktop-Hintergrund annimmt, ist ungeprüft; eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
+
                 <TextBlock Text="Strom sparen" Style="{StaticResource Abschnitt}" />
 
                 <CheckBox x:Name="PauseSchalter" Content="Pause, wenn der Desktop verdeckt ist"
                           Checked="PauseGeaendert" Unchecked="PauseGeaendert" />
                 <TextBlock Style="{StaticResource Hinweis}"
                            Text="Hält das Video an, sobald kein Stück Desktop mehr zu sehen ist. Der Abspieler läuft dabei weiter; ganz beendet wird er erst im Spielmodus, Strg+Alt+G." />
+
+                <CheckBox x:Name="AkkuSchalter" Content="Pause im Akkubetrieb" Margin="0,10,0,0"
+                          Checked="AkkuGeaendert" Unchecked="AkkuGeaendert" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Hält das Video an, sobald der Rechner ohne Netzstecker läuft. Auf einem Rechner ohne Akku ohne Wirkung." />
 
                 <TextBlock Text="Karussell" Style="{StaticResource Abschnitt}" />
 
