@@ -102,7 +102,7 @@
                 <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe versuchen"
                           Checked="HdrGeaendert" Unchecked="HdrGeaendert" />
                 <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Nur sinnvoll mit HDR-fähigem Bildschirm und eingeschaltetem HDR in Windows. Ob Windows das für den Desktop-Hintergrund annimmt, ist ungeprüft; eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
+                           Text="Nur sinnvoll mit HDR-fähigem Bildschirm, eingeschaltetem HDR in Windows und einem Video, das selbst in HDR vorliegt. Bei einem gewöhnlichen Video bringt der Schalter nichts. Eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
 
                 <TextBlock Text="Strom sparen" Style="{StaticResource Abschnitt}" />
 

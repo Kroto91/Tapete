@@ -51,10 +51,12 @@ Geschwindigkeit        halbes bis doppeltes Tempo.
 Lautstärke             ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem
                        ein eigener Abspieler, dann kommt auch der Ton mehrfach.
 
-HDR-Ausgabe            nur mit HDR-Bildschirm und eingeschaltetem HDR in
-                       Windows sinnvoll. Ob Windows das für den Hintergrund
-                       annimmt, ist ungeprüft; eingeschaltet legt der Abspieler
-                       zusätzlich mpv-hdr.txt neben das Protokoll.
+HDR-Ausgabe            nur mit HDR-Bildschirm, eingeschaltetem HDR in Windows
+                       und einem Video, das selbst in HDR vorliegt. Bei einem
+                       gewöhnlichen Video bringt der Schalter nichts.
+                       Eingeschaltet legt der Abspieler zusätzlich mpv-hdr.txt
+                       neben das Protokoll; dort steht, was die Ausgabe
+                       tatsächlich gemacht hat.
 
 Pause wenn verdeckt    hält das Video an, sobald kein Stück Desktop mehr zu
                        sehen ist. Anders als der Spielmodus läuft der

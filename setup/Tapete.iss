@@ -8,7 +8,7 @@
 ; Bauen:  ISCC.exe Tapete.iss
 
 #define Name      "Tapete"
-#define Version   "1.4.0"
+#define Version   "1.4.1"
 #define Autor     "Timm-Fabian Krotofil"
 #define Exe       "Tapete.exe"
 ; Beide Pfade werden beim Uebersetzen ausgerechnet, nicht fest eingetragen.

@@ -603,7 +603,11 @@ public partial class App : Application
     {
         var schalter = new List<string>
         {
-            "--volume=" + Einstellungen.Lautstaerke,
+            // Ohne Ton gar keine Tonausgabe oeffnen. Mit --volume=0 meldete sich mpv
+            // trotzdem bei WASAPI an, laut Protokoll vom 02.09.2026: eine
+            // Tonsitzung je Bildschirm, die im Lautstaerkemischer auftaucht und
+            // nichts tut.
+            Einstellungen.Lautstaerke == 0 ? "--no-audio" : "--volume=" + Einstellungen.Lautstaerke,
             "--speed=" + (Einstellungen.TempoProzent / 100.0).ToString(CultureInfo.InvariantCulture),
         };
         if (Einstellungen.Helligkeit != 0) schalter.Add("--brightness=" + Einstellungen.Helligkeit);
@@ -615,6 +619,11 @@ public partial class App : Application
             // Protokoll mit: Darin steht, was die Ausgabe tatsaechlich gemacht
             // hat, und nicht nur, dass der Schalter gesetzt war.
             schalter.Add("--target-colorspace-hint=yes");
+            // Zehn Bit je Farbe. Ohne das waehlte mpv R8G8B8A8, und acht Bit mit
+            // der HDR-Kennlinie ergeben sichtbare Stufen in Verlaeufen. Belegt am
+            // 02.09.2026 im mpv-Protokoll: "Selected swapchain format
+            // R8G8B8A8_UNORM".
+            schalter.Add("--d3d11-output-format=rgb10_a2");
             schalter.Add("--msg-level=vo=v");
             schalter.Add("--log-file=" + Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -638,6 +647,7 @@ public partial class App : Application
         });
         if (!s.Contains("--speed=1.25")) fehler.Add("Tempo falsch: " + string.Join(" ", s));
         if (!s.Contains("--volume=40")) fehler.Add("Lautstaerke fehlt");
+        if (!MpvSchalter(new Settings()).Contains("--no-audio")) fehler.Add("Ohne Ton fehlt --no-audio");
         if (!s.Contains("--brightness=-20")) fehler.Add("Helligkeit fehlt");
         if (s.Any(x => x.StartsWith("--saturation"))) fehler.Add("Saettigung 0 sollte gar nicht auftauchen");
         return fehler;
