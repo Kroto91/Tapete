@@ -25,6 +25,7 @@ Bedienen
 Kachel anklicken       Video wird zum Hintergrund
 Rechtsklick darauf     Video einem einzelnen Bildschirm zuweisen, oder
                        "In den Papierkorb" nach einer Rückfrage
+Suchfeld oben rechts   zeigt nur Kacheln, deren Name den Text enthält
 Aus                    zurück zum normalen Windows-Hintergrund
 Fenster schließen      Programm läuft im Infobereich neben der Uhr weiter,
                        Doppelklick holt es zurück, Rechtsklick hat "Beenden"
@@ -71,6 +72,10 @@ Halbe Bildrate         rechnet das Video einmalig auf die halbe Bildrate
 
 Karussell              wechselt den Hintergrund von selbst, siehe unten.
 
+Profile                merken sich Bildschirm-Modus, laufendes Video und die
+                       Zuweisungen unter einem Namen. Namen eintippen und auf
+                       Speichern; aus der Liste wählen lädt sofort.
+
 Mit Windows starten    legt eine Verknüpfung im Autostart-Ordner an. Das
                        Programm startet dann ohne Fenster und setzt den
                        zuletzt gewählten Hintergrund.
@@ -104,6 +109,11 @@ bevor sich etwas wiederholt.
 Gewechselt wird nur, wenn der Desktop auch zu sehen ist. Sonst zöge ein
 Arbeitstag am Bildschirm die halbe Sammlung ungesehen vorbei.
 
+Bei mehreren Bildschirmen und "jeder Bildschirm einzeln" zieht jeder Schirm
+sein eigenes nächstes Video, es läuft also nicht überall dasselbe. Wer ein
+Video per Rechtsklick fest zugewiesen hat, behält es dort; das Karussell
+verteilt nur auf die übrigen.
+
 Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag "Nächstes Video"
 im Symbol neben der Uhr.
 
@@ -118,6 +128,14 @@ bleibt.
 Bis Fassung 1.2.0 wurde stattdessen eingepasst. Ein Video im Verhältnis 21:9
 bekam auf einem 16:9-Bildschirm dadurch schwarze Balken oben und unten, ein
 16:9-Video auf einem Ultrawide welche links und rechts.
+
+
+Wenn ein Video verschwindet
+---------------------------
+
+Fehlt das zuletzt gespielte Video beim Start, nimmt Tapete das erste aus dem
+Ordner und sagt in der Statuszeile, dass es das ursprüngliche nicht mehr gibt.
+Vorher blieb der Hintergrund einfach leer.
 
 
 Zu große Videos werden angepasst

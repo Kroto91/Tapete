@@ -53,6 +53,17 @@
                            Margin="0,3,0,0" Text="Ein Video anklicken, mehr ist nicht nötig." />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Grid Margin="0,0,8,0">
+                    <TextBox x:Name="Suchfeld" Width="150" Height="30" Padding="8,0"
+                             VerticalContentAlignment="Center" TextChanged="SuchfeldGeaendert"
+                             Background="{StaticResource Card}" Foreground="{StaticResource Text}"
+                             CaretBrush="{StaticResource Text}" BorderBrush="{StaticResource Line}"
+                             BorderThickness="1" FontSize="12.5"
+                             ToolTip="Zeigt nur Kacheln, deren Name den eingetippten Text enthält." />
+                    <TextBlock x:Name="SuchePlatzhalter" Text="Suchen" IsHitTestVisible="False"
+                               Foreground="{StaticResource Dim}" FontSize="12.5"
+                               VerticalAlignment="Center" Margin="9,0,0,0" />
+                </Grid>
                 <Button x:Name="SpielKnopf" Style="{StaticResource Ghost}" Content="Spielmodus"
                         Click="SpielmodusGeklickt" Margin="0,0,8,0"
                         ToolTip="Beendet den Abspieler ganz, nicht nur angehalten. Auch über das Symbol neben der Uhr erreichbar." />

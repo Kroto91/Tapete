@@ -133,6 +133,22 @@ public sealed class Settings
     /// </summary>
     public bool BeiAkkuPausieren { get; set; } = true;
 
+    // ---------- Profile ----------
+
+    /// <summary>
+    /// Benannte Momentaufnahmen: welcher Modus, welches gemeinsame Video und
+    /// welche Zuweisungen je Bildschirm. Gedacht zum Umschalten zwischen
+    /// Zusammenstellungen, ohne jedes Mal neu zuzuweisen.
+    /// </summary>
+    public Dictionary<string, Profil> Profile { get; set; } = [];
+
+    public sealed class Profil
+    {
+        public string? Bildschirm { get; set; }
+        public string? Video { get; set; }
+        public Dictionary<string, string> JeBildschirm { get; set; } = [];
+    }
+
     private static string Ordner =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tapete");
 

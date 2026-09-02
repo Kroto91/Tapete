@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
@@ -109,7 +110,37 @@ public partial class MainWindow : Window
                 : $"Läuft: {Path.GetFileName(aktiv)}{karussell}";
     }
 
+    /// <summary>
+    /// Zeigt nur noch die Kacheln, deren Dateiname den eingetippten Text enthaelt.
+    /// Gefiltert wird die Ansicht, nicht die Liste: Die Haken fuers Karussell und
+    /// die laufende Kachel bleiben dadurch unberuehrt.
+    /// </summary>
+    private void SuchfeldGeaendert(object sender, TextChangedEventArgs e)
+    {
+        string suche = Suchfeld.Text.Trim();
+        SuchePlatzhalter.Visibility = suche.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        var sicht = CollectionViewSource.GetDefaultView(_items);
+        sicht.Filter = suche.Length == 0
+            ? null
+            : o => o is VideoItem v
+                && Path.GetFileName(v.Pfad).Contains(suche, StringComparison.OrdinalIgnoreCase);
+
+        int treffer = sicht.Cast<object>().Count();
+        Unterzeile.Text = suche.Length == 0
+            ? "Ein Video anklicken, mehr ist nicht nötig."
+            : treffer switch
+            {
+                0 => $"Kein Video enthält „{suche}“.",
+                1 => $"Ein Video enthält „{suche}“.",
+                _ => $"{treffer} Videos enthalten „{suche}“."
+            };
+    }
+
     public void FehlerZeigen(string text) => Status.Text = "Geht nicht: " + text;
+
+    /// <summary>Ein Hinweis ohne Fehlercharakter, etwa der Rueckfall auf ein anderes Video.</summary>
+    public void MeldungZeigen(string text) => Status.Text = text;
 
     // ---------- Knoepfe ----------
 
@@ -124,14 +155,6 @@ public partial class MainWindow : Window
     private void SpielmodusGeklickt(object sender, RoutedEventArgs e) =>
         Programm.SpielmodusUmschalten();
 
-    /// <summary>
-    /// Legt ein Video in den Papierkorb, nicht endgueltig geloescht. Ein Fehlklick
-    /// laesst sich damit zuruecknehmen.
-    ///
-    /// Laeuft das Video gerade, haelt mpv die Datei offen - deshalb erst abschalten.
-    /// Und der Zwischenspeicher muss mit weg, sonst bleibt die gerechnete Fassung
-    /// als Waise liegen.
-    /// </summary>
     /// <summary>
     /// Baut das Kontextmenue beim Rechtsklick und merkt sich dabei die Kachel.
     ///
@@ -204,6 +227,14 @@ public partial class MainWindow : Window
             + schirm.Replace(@"\\.\", "") + ".";
     }
 
+    /// <summary>
+    /// Legt ein Video in den Papierkorb, nicht endgueltig geloescht. Ein Fehlklick
+    /// laesst sich damit zuruecknehmen.
+    ///
+    /// Laeuft das Video gerade, haelt mpv die Datei offen - deshalb erst abschalten.
+    /// Und der Zwischenspeicher muss mit weg, sonst bleibt die gerechnete Fassung
+    /// als Waise liegen.
+    /// </summary>
     private void Entfernen(VideoItem item)
     {
         string name = Path.GetFileName(item.Pfad);

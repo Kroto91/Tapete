@@ -45,6 +45,7 @@ public partial class EinstellungenFenster : Window
         StufenFuellen(TempoWahl, Tempostufen, Programm.Einstellungen.TempoProzent, 100);
         StufenFuellen(LautstaerkeWahl, Lautstufen, Programm.Einstellungen.Lautstaerke, 0);
 
+        ProfileFuellen();
         HdrSchalter.IsChecked = Programm.Einstellungen.Hdr;
         AkkuSchalter.IsChecked = Programm.Einstellungen.BeiAkkuPausieren;
         PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
@@ -258,6 +259,66 @@ public partial class EinstellungenFenster : Window
         Programm.Einstellungen.BeiAkkuPausieren = an;
         Programm.Einstellungen.Speichern();
         Programm.AkkuRegelAnwenden(an);
+    }
+
+    // ---------- Profile ----------
+
+    private void ProfileFuellen()
+    {
+        bool vorher = _laedt;
+        _laedt = true;
+        ProfilWahl.Items.Clear();
+        foreach (string n in Programm.Einstellungen.Profile.Keys.OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase))
+            ProfilWahl.Items.Add(n);
+        _laedt = vorher;
+
+        int n2 = ProfilWahl.Items.Count;
+        ProfilStand.Text = n2 switch
+        {
+            0 => "Noch kein Profil gespeichert.",
+            1 => "Ein Profil gespeichert.",
+            _ => $"{n2} Profile gespeichert."
+        };
+    }
+
+    /// <summary>
+    /// Der eingetippte oder gewaehlte Name. Bei einer editierbaren Liste steht der
+    /// getippte Text in Text, der angeklickte Eintrag in SelectedItem; wer nur eines
+    /// von beiden liest, verliert je nach Bedienweg die Eingabe.
+    /// </summary>
+    private string ProfilName =>
+        (ProfilWahl.SelectedItem as string ?? ProfilWahl.Text ?? "").Trim();
+
+    private void ProfilGewaehlt(object sender, SelectionChangedEventArgs e)
+    {
+        if (_laedt || ProfilWahl.SelectedItem is not string name) return;
+        if (!Programm.ProfilLaden(name)) return;
+        BildschirmeFuellen();
+        ProfilStand.Text = $"Profil „{name}“ geladen.";
+    }
+
+    private void ProfilSpeichern(object sender, RoutedEventArgs e)
+    {
+        string name = ProfilName;
+        if (name.Length == 0) { ProfilStand.Text = "Erst einen Namen eintippen."; return; }
+        Programm.ProfilSpeichern(name);
+        ProfileFuellen();
+        ProfilWahl.Text = name;
+        ProfilStand.Text = $"Profil „{name}“ gespeichert.";
+    }
+
+    private void ProfilLoeschen(object sender, RoutedEventArgs e)
+    {
+        string name = ProfilName;
+        if (name.Length == 0 || !Programm.Einstellungen.Profile.ContainsKey(name))
+        {
+            ProfilStand.Text = "Kein Profil dieses Namens.";
+            return;
+        }
+        Programm.ProfilLoeschen(name);
+        ProfileFuellen();
+        ProfilWahl.Text = "";
+        ProfilStand.Text = $"Profil „{name}“ gelöscht.";
     }
 
     private void ReihenfolgeGewaehlt(object sender, SelectionChangedEventArgs e)

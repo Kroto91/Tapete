@@ -53,6 +53,13 @@ public partial class App : Application
     /// <summary>Damit nicht zwei Umrechnungen gleichzeitig laufen.</summary>
     private bool _rechnet;
 
+    /// <summary>
+    /// Die Verteilung des Karussells auf die Bildschirme: Geraetename auf Video.
+    /// Nur gesetzt, solange das Karussell selbst verteilt hat; ein Klick auf eine
+    /// Kachel raeumt sie weg, sonst klebte die alte Verteilung an der neuen Wahl.
+    /// </summary>
+    private IReadOnlyDictionary<string, string>? _karussellJeSchirm;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -70,8 +77,8 @@ public partial class App : Application
 
         var probe3 = SchalterProbe();
         Hintergrund.Notiz(probe3.Count == 0
-            ? "Rechenprobe mpv-Schalter: in Ordnung"
-            : "Rechenprobe mpv-Schalter FEHLER: " + string.Join("; ", probe3));
+            ? "Rechenprobe Schalter und Verteilung: in Ordnung"
+            : "Rechenprobe Schalter und Verteilung FEHLER: " + string.Join("; ", probe3));
 
         // Zweiter Start bringt nur das vorhandene Fenster nach vorn.
         _einzelInstanz = new Mutex(initiallyOwned: true, "Tapete_EinzelInstanz_9f2c", out bool neu);
@@ -106,7 +113,45 @@ public partial class App : Application
         bool da = gesetzt && File.Exists(Einstellungen.LetztesVideo);
         Hintergrund.Notiz($"Startvideo: gesetzt={gesetzt} vorhanden={da}");
         if (gesetzt && da) HintergrundSetzen(Einstellungen.LetztesVideo!);
+        else if (gesetzt) Ersatzvideo();
         if (_wallpaper is not { Laeuft: true }) NachreichenStarten();
+    }
+
+    /// <summary>
+    /// Faellt auf ein anderes Video zurueck, wenn das zuletzt gespielte fehlt.
+    ///
+    /// Bis 1.4.1 blieb der Hintergrund in dem Fall einfach leer, ohne dass jemand
+    /// den Grund erfuhr. Am 01.09.2026 hatte ein Tester seine Videodatei von Hand
+    /// geloescht; im Protokoll stand nur `vorhanden=False`, und eine Stunde ging
+    /// dafuer drauf, das fuer einen Fehler der Selbstaktualisierung zu halten.
+    ///
+    /// Genommen wird das alphabetisch erste Video im Videoordner. Eine klügere
+    /// Wahl braucht es nicht: Es geht darum, dass ueberhaupt etwas laeuft und die
+    /// Meldung erscheint.
+    /// </summary>
+    private void Ersatzvideo()
+    {
+        string? ersatz = null;
+        try
+        {
+            ersatz = Directory.EnumerateFiles(Settings.VideoOrdner)
+                .Where(Hintergrund.IstUnterstuetzt)
+                .OrderBy(p => Path.GetFileName(p), StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+        }
+        catch (Exception e) { Hintergrund.Notiz($"Ersatzvideo suchen gescheitert: {e.GetType().Name}: {e.Message}"); }
+
+        string fehlt = Path.GetFileName(Einstellungen.LetztesVideo ?? "");
+        if (ersatz is null)
+        {
+            Hintergrund.Notiz($"Startvideo {fehlt} fehlt, und im Videoordner liegt kein Ersatz");
+            _fenster?.MeldungZeigen($"{fehlt} ist nicht mehr da, und der Videoordner ist leer.");
+            return;
+        }
+
+        Hintergrund.Notiz($"Startvideo {fehlt} fehlt, Ersatz: {Path.GetFileName(ersatz)}");
+        HintergrundSetzen(ersatz);
+        _fenster?.MeldungZeigen($"{fehlt} ist nicht mehr da. Es laeuft jetzt {Path.GetFileName(ersatz)}.");
     }
 
     /// <summary>
@@ -312,8 +357,27 @@ public partial class App : Application
             Hintergrund.Notiz("Karussell: kein Video angekreuzt");
             return;
         }
-        Hintergrund.Notiz("Karussell: weiter zu " + Path.GetFileName(naechstes));
-        HintergrundSetzen(naechstes);
+
+        // Auf mehreren Bildschirmen zieht jeder ein eigenes naechstes Video, statt
+        // ueberall dasselbe zu zeigen. Nur bei "jeder Bildschirm einzeln" und nur,
+        // wenn ueberhaupt genug Videos angekreuzt sind - sonst liefe zweimal
+        // dasselbe und der Umweg brächte nichts.
+        Dictionary<string, string>? jeSchirm = null;
+        var schirme = Einstellungen.Bildschirm == "*" ? Native.Bildschirme() : [];
+        if (schirme.Count > 1 && _karussell.Anzahl >= schirme.Count)
+        {
+            jeSchirm = new Dictionary<string, string> { [schirme[0].Name] = naechstes };
+            foreach (var s in schirme.Skip(1))
+                if (_karussell.Weiter() is string weiteres) jeSchirm[s.Name] = weiteres;
+            Hintergrund.Notiz("Karussell: " + string.Join(", ",
+                jeSchirm.Select(p => p.Key.Replace(@"\\.\", "") + " -> " + Path.GetFileName(p.Value))));
+        }
+        else
+        {
+            Hintergrund.Notiz("Karussell: weiter zu " + Path.GetFileName(naechstes));
+        }
+
+        HintergrundSetzen(naechstes, jeSchirm);
         VorbereitenAnstossen();
     }
 
@@ -440,7 +504,8 @@ public partial class App : Application
         TrayTextSetzen();
     }
 
-    public void HintergrundSetzen(string pfad)
+    public void HintergrundSetzen(string pfad,
+        IReadOnlyDictionary<string, string>? karussellJeSchirm = null)
     {
         if (!File.Exists(pfad)) { Hintergrund.Notiz("HintergrundSetzen: Datei fehlt, " + pfad); return; }
 
@@ -480,14 +545,24 @@ public partial class App : Application
         // ponytail: Alle Fassungen werden auf den groessten Schirm gerechnet, nicht
         // je Schirm einzeln. Eine Datei je Bildschirmgroesse erst, wenn das auf dem
         // kleineren messbar Last kostet.
+        //
+        // Zwei Quellen koennen etwas dazu sagen: das Karussell, das beim Wechsel
+        // auf jeden Schirm ein anderes Video legt, und die feste Zuweisung per
+        // Rechtsklick. Die feste gewinnt - wer ein Video ausdruecklich auf einen
+        // Schirm legt, will es dort behalten, auch waehrend das Karussell laeuft.
+        _karussellJeSchirm = karussellJeSchirm;
         Dictionary<string, string>? jeSchirm = null;
-        if (Einstellungen.Bildschirm == "*" && Einstellungen.VideoJeBildschirm.Count > 0)
+        if (Einstellungen.Bildschirm == "*")
         {
-            jeSchirm = [];
-            foreach (var (schirm, eigenes) in Einstellungen.VideoJeBildschirm)
-                if (File.Exists(eigenes))
-                    jeSchirm[schirm] = Verkleinern.Fertig(eigenes, bb, bh, halb) ?? eigenes;
-            Hintergrund.Notiz($"Eigene Videos je Bildschirm: {jeSchirm.Count}");
+            var roh = VerteilungMischen(karussellJeSchirm, Einstellungen.VideoJeBildschirm);
+            if (roh.Count > 0)
+            {
+                jeSchirm = [];
+                foreach (var (schirm, eigenes) in roh)
+                    if (File.Exists(eigenes))
+                        jeSchirm[schirm] = Verkleinern.Fertig(eigenes, bb, bh, halb) ?? eigenes;
+                Hintergrund.Notiz($"Eigene Videos je Bildschirm: {jeSchirm.Count}");
+            }
         }
 
         _wallpaper = new Hintergrund(abspielen, Einstellungen.Bildschirm, jeSchirm,
@@ -573,7 +648,10 @@ public partial class App : Application
         // Die Vorlage, nicht die gerechnete Fassung. HintergrundSetzen sucht sich die
         // passende Fassung selbst, und nach einem Bildschirmwechsel ist das eine andere.
         string? pfad = _original ?? Einstellungen.LetztesVideo;
-        if (!string.IsNullOrWhiteSpace(pfad) && File.Exists(pfad)) HintergrundSetzen(pfad);
+        // Die Verteilung des Karussells mitgeben, sonst liefe nach jeder
+        // Einstellungsaenderung wieder ueberall dasselbe.
+        if (!string.IsNullOrWhiteSpace(pfad) && File.Exists(pfad))
+            HintergrundSetzen(pfad, _karussellJeSchirm);
     }
 
     public void PauseRegelAnwenden(bool an)
@@ -587,6 +665,58 @@ public partial class App : Application
         var schalter = MpvSchalter(Einstellungen);
         Hintergrund.Notiz("mpv-Schalter: " + string.Join(" ", schalter));
         return schalter;
+    }
+
+    // ---------- Profile ----------
+
+    /// <summary>
+    /// Schreibt den jetzigen Zustand unter einem Namen fest: Modus, gemeinsames
+    /// Video und die Zuweisungen je Bildschirm. Ein vorhandener Name wird
+    /// ueberschrieben.
+    /// </summary>
+    public void ProfilSpeichern(string name)
+    {
+        Einstellungen.Profile[name] = new Settings.Profil
+        {
+            Bildschirm = Einstellungen.Bildschirm,
+            Video = _original ?? Einstellungen.LetztesVideo,
+            JeBildschirm = new Dictionary<string, string>(Einstellungen.VideoJeBildschirm)
+        };
+        Einstellungen.Speichern();
+        Hintergrund.Notiz($"Profil \"{name}\" gespeichert, {Einstellungen.Profile[name].JeBildschirm.Count} Zuweisung(en)");
+    }
+
+    /// <summary>
+    /// Holt ein Profil zurueck. Fehlende Videodateien werden dabei uebergangen,
+    /// sonst stuende ein Profil nach dem Aufraeumen des Videoordners fuer immer
+    /// auf einer Datei, die es nicht mehr gibt.
+    /// </summary>
+    public bool ProfilLaden(string name)
+    {
+        if (!Einstellungen.Profile.TryGetValue(name, out var p)) return false;
+
+        Einstellungen.Bildschirm = p.Bildschirm;
+        Einstellungen.VideoJeBildschirm = p.JeBildschirm
+            .Where(e => File.Exists(e.Value))
+            .ToDictionary(e => e.Key, e => e.Value);
+        Einstellungen.Speichern();
+
+        int weg = p.JeBildschirm.Count - Einstellungen.VideoJeBildschirm.Count;
+        Hintergrund.Notiz($"Profil \"{name}\" geladen, {Einstellungen.VideoJeBildschirm.Count} Zuweisung(en)"
+            + (weg > 0 ? $", {weg} uebergangen weil die Datei fehlt" : ""));
+
+        // Das gemeinsame Video mitnehmen, wenn es noch da ist; sonst nur neu
+        // aufbauen, damit wenigstens die Zuweisungen greifen.
+        if (!string.IsNullOrWhiteSpace(p.Video) && File.Exists(p.Video)) HintergrundSetzen(p.Video!);
+        else HintergrundNeuAufbauen();
+        return true;
+    }
+
+    public void ProfilLoeschen(string name)
+    {
+        if (!Einstellungen.Profile.Remove(name)) return;
+        Einstellungen.Speichern();
+        Hintergrund.Notiz($"Profil \"{name}\" geloescht");
     }
 
     public void AkkuRegelAnwenden(bool an)
@@ -633,6 +763,23 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Fuehrt die beiden Quellen fuer "welches Video auf welchem Schirm" zusammen.
+    /// Die feste Zuweisung per Rechtsklick gewinnt gegen die Verteilung des
+    /// Karussells: Wer ein Video ausdruecklich auf einen Schirm legt, will es dort
+    /// behalten, auch waehrend das Karussell laeuft.
+    /// </summary>
+    internal static Dictionary<string, string> VerteilungMischen(
+        IReadOnlyDictionary<string, string>? karussell,
+        IReadOnlyDictionary<string, string> fest)
+    {
+        var roh = new Dictionary<string, string>();
+        if (karussell is not null)
+            foreach (var (schirm, video) in karussell) roh[schirm] = video;
+        foreach (var (schirm, video) in fest) roh[schirm] = video;
+        return roh;
+    }
+
+    /// <summary>
     /// Rechenprobe fuer die Schalterliste. Der eigentliche Grund ist das
     /// Dezimalzeichen: Auf einem deutschen Windows macht ToString() aus 1,25 ein
     /// "1,25", und mpv lehnt das ab - ein Fehler, den man erst am schwarzen Bild
@@ -650,6 +797,15 @@ public partial class App : Application
         if (!MpvSchalter(new Settings()).Contains("--no-audio")) fehler.Add("Ohne Ton fehlt --no-audio");
         if (!s.Contains("--brightness=-20")) fehler.Add("Helligkeit fehlt");
         if (s.Any(x => x.StartsWith("--saturation"))) fehler.Add("Saettigung 0 sollte gar nicht auftauchen");
+
+        // Die Rangfolge der beiden Verteilungsquellen. Kippt sie, wandert ein fest
+        // zugewiesenes Video beim naechsten Karussellwechsel unbemerkt weg.
+        var gemischt = VerteilungMischen(
+            new Dictionary<string, string> { ["A"] = "karussell.mp4", ["B"] = "zwei.mp4" },
+            new Dictionary<string, string> { ["A"] = "fest.mp4" });
+        if (gemischt.GetValueOrDefault("A") != "fest.mp4") fehler.Add("Feste Zuweisung verliert gegen das Karussell");
+        if (gemischt.GetValueOrDefault("B") != "zwei.mp4") fehler.Add("Karussell-Zuweisung ohne feste ging verloren");
+
         return fehler;
     }
 

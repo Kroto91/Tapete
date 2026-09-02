@@ -139,6 +139,25 @@
                 <TextBlock Style="{StaticResource Hinweis}"
                            Text="Welche Videos mitlaufen, entscheidet der Haken oben links auf jeder Kachel. Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag im Symbol neben der Uhr." />
 
+                <TextBlock Text="Profile" Style="{StaticResource Abschnitt}" />
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Name" Foreground="{StaticResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="ProfilWahl" Width="260" HorizontalAlignment="Right"
+                              IsEditable="True" SelectionChanged="ProfilGewaehlt" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
+                    <Button Style="{StaticResource Ghost}" Content="Speichern" Click="ProfilSpeichern"
+                            Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Ghost}" Content="Löschen" Click="ProfilLoeschen" />
+                </StackPanel>
+
+                <TextBlock x:Name="ProfilStand" Style="{StaticResource Hinweis}" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Ein Profil merkt sich den Bildschirm-Modus, das laufende Video und die per Rechtsklick vergebenen Zuweisungen. Namen eintippen und auf Speichern; aus der Liste wählen lädt es sofort." />
+
                 <TextBlock Text="Windows" Style="{StaticResource Abschnitt}" />
 
                 <CheckBox x:Name="AutostartSchalter" Content="Mit Windows starten"
