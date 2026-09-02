@@ -134,10 +134,10 @@
 
                 <TextBlock Text="Strom sparen" Style="{StaticResource Abschnitt}" />
 
-                <CheckBox x:Name="PauseSchalter" Content="Pause, wenn der Desktop verdeckt ist"
+                <CheckBox x:Name="PauseSchalter" Content="Zurückhalten, wenn der Desktop verdeckt ist"
                           Checked="PauseGeaendert" Unchecked="PauseGeaendert" />
                 <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Hält das Video an, sobald kein Stück Desktop mehr zu sehen ist. Der Abspieler läuft dabei weiter; ganz beendet wird er erst im Spielmodus, Strg+Alt+G." />
+                           Text="Hält das Video an, sobald kein Stück Desktop mehr zu sehen ist; der Abspieler läuft dabei weiter. Derselbe Haken steuert die Vollbild-Automatik: Läuft ein Spiel oder ein Film im Vollbild, schaltet Tapete zusätzlich den Spielmodus ein und beendet den Abspieler ganz. Ohne Haken passiert bei Vollbild nichts mehr, von Hand geht der Spielmodus weiter mit Strg+Alt+G." />
 
                 <CheckBox x:Name="AkkuSchalter" Content="Pause im Akkubetrieb" Margin="0,10,0,0"
                           Checked="AkkuGeaendert" Unchecked="AkkuGeaendert" />

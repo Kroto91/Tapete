@@ -477,6 +477,19 @@ public partial class App : Application
         };
         _spielWacht.Tick += (_, _) =>
         {
+            // Derselbe Schalter, der das Pausieren steuert, steuert auch diese
+            // Automatik. Vorher liefen beide getrennt: Wer "Bei Vollbild pausieren"
+            // ausschaltete, bekam den Hintergrund trotzdem bei jedem Spiel
+            // weggenommen, nur ueber den anderen Weg. Das Protokoll vom 02.09.2026
+            // zeigt sechzehn mpv-Neustarts an einem Abend.
+            if (!AutomatikGreift(Einstellungen))
+            {
+                // Mitschreiben, was draussen los ist, sonst schlaegt die Automatik
+                // beim Wiedereinschalten des Schalters sofort einmal zu.
+                _zuletztVollbild = Native.VollbildAnwendungLaeuft();
+                return;
+            }
+
             bool spielt = Native.VollbildAnwendungLaeuft();
             if (spielt == _zuletztVollbild) return;
             _zuletztVollbild = spielt;
@@ -703,6 +716,17 @@ public partial class App : Application
     public void PauseRegelAnwenden(bool an)
     {
         if (_wallpaper is not null) _wallpaper.BeiVollbildPausieren = an;
+
+        // Wird der Schalter ausgeschaltet, waehrend die Automatik gerade den
+        // Spielmodus haelt, bliebe der Hintergrund fuer immer weg: Die Automatik
+        // laeuft ab jetzt nicht mehr und kann ihn nicht zuruecknehmen.
+        if (!an && Spielmodus && _spielAutomatisch)
+        {
+            Hintergrund.Notiz("Vollbild-Automatik abgeschaltet, Spielmodus zurueckgenommen");
+            _spielAutomatisch = false;
+            Einstellungen.SpielmodusAutomatisch = false;
+            Spielmodus = false;
+        }
     }
 
     /// <summary>Die Schalter fuer den laufenden Aufbau, dazu die Zeile im Protokoll.</summary>
@@ -932,6 +956,13 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Ob die Vollbild-Automatik ueberhaupt schalten darf. Steht hier, damit der
+    /// Takt und die Rechenprobe dieselbe Bedingung lesen und nicht zwei Fassungen
+    /// davon auseinanderlaufen.
+    /// </summary>
+    internal static bool AutomatikGreift(Settings e) => e.BeiVollbildPausieren;
+
+    /// <summary>
     /// Rechenprobe fuer die Schalterliste. Der eigentliche Grund ist das
     /// Dezimalzeichen: Auf einem deutschen Windows macht ToString() aus 1,25 ein
     /// "1,25", und mpv lehnt das ab - ein Fehler, den man erst am schwarzen Bild
@@ -967,6 +998,15 @@ public partial class App : Application
         if (!probe.Contains("urlaub-am-see.mp4")) fehler.Add("Der Videoname sollte stehen bleiben");
         if (!probe.StartsWith("Startvideo: ") || !probe.EndsWith(" fehlt"))
             fehler.Add("Der Filter frisst zu viel: " + probe);
+
+        // Ein Schalter, zwei Wege: Seit dem 02.09.2026 haelt "Bei Vollbild
+        // pausieren" auch die Spielautomatik an. Faellt diese Kopplung wieder
+        // heraus, nimmt die Automatik den Hintergrund weiter weg, obwohl der
+        // Schalter aus ist - genau der Befund aus dem Protokoll jenes Tages.
+        if (!AutomatikGreift(new Settings { BeiVollbildPausieren = true }))
+            fehler.Add("Automatik greift nicht, obwohl der Schalter an ist");
+        if (AutomatikGreift(new Settings { BeiVollbildPausieren = false }))
+            fehler.Add("Automatik laeuft trotz ausgeschaltetem Schalter");
 
         return fehler;
     }
