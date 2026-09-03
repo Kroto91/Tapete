@@ -57,6 +57,8 @@
 
     <!-- Grobe Blockzeichen, langsam und weit auseinander: die Anmutung einer alten Bildroehre. Der Regen laeuft hinter den Kacheln und ist nur in den
          freien Flaechen zu sehen. -->
+    <!-- Sonnenaufgang ueber Wasser, seit 1.13.75 -->
+    <sys:String x:Key="EffektArt">sonne</sys:String>
     <sys:String x:Key="EffektZeichen">▚▞░▒▓█▌▐</sys:String>
     <sys:Double x:Key="EffektTempo">15</sys:Double>
     <sys:Int32 x:Key="EffektDichte">12</sys:Int32>

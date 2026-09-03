@@ -57,6 +57,8 @@
 
     <!-- Zeichenregen wie in Matrix, in der Signalfarbe des Themas. Der Regen laeuft hinter den Kacheln und ist nur in den
          freien Flaechen zu sehen. -->
+    <!-- Zeichenregen, seit 1.11.0 -->
+    <sys:String x:Key="EffektArt">regen</sys:String>
     <sys:String x:Key="EffektZeichen">0123456789ABCDEFアイウエオカキクケコサシスセソタチツテトナニヌネノ</sys:String>
     <sys:Double x:Key="EffektTempo">7.5</sys:Double>
     <sys:Int32 x:Key="EffektDichte">26</sys:Int32>

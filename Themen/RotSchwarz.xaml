@@ -57,6 +57,8 @@
 
     <!-- Langsam sinkende Zeichenketten, spaerlicher als bei Cyberpunk: ruhiger Datenstrom statt Regen. Der Regen laeuft hinter den Kacheln und ist nur in den
          freien Flaechen zu sehen. -->
+    <!-- Blitze in Neonweiss, seit 1.13.75 -->
+    <sys:String x:Key="EffektArt">blitze</sys:String>
     <sys:String x:Key="EffektZeichen">0123456789ABCDEF/\|:.-=+*#</sys:String>
     <sys:Double x:Key="EffektTempo">12</sys:Double>
     <sys:Int32 x:Key="EffektDichte">16</sys:Int32>

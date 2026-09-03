@@ -58,6 +58,8 @@
 
     <!-- Dichter, schneller Strom aus Nullen und Einsen, sehr blass. Der Regen laeuft hinter den Kacheln und ist nur in den
          freien Flaechen zu sehen. -->
+    <!-- Spektrum mit Spitzenwerthaltern, seit 1.13.75 -->
+    <sys:String x:Key="EffektArt">spektrum</sys:String>
     <sys:String x:Key="EffektZeichen">01</sys:String>
     <sys:Double x:Key="EffektTempo">5.5</sys:Double>
     <sys:Int32 x:Key="EffektDichte">34</sys:Int32>
