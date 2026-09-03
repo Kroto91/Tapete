@@ -286,31 +286,45 @@
                 </Setter>
             </Style>
 
-            <!-- Schalter -->
+            <!-- Schalter.
+                 Eckig seit dem 03.09.2026 und mit den Farben des Themas. Vorher war
+                 er rund und trug zwei feste Grautoene, die keinem Erscheinungsbild
+                 gehoerten: Auf Cyberpunk sass ein blaugrauer Schalter zwischen lauter
+                 gelben Linien. Die Form entscheidet ueber den Stil, nicht der Ton -
+                 das war die Lehre aus dem Fehlschlag im August. -->
             <Style TargetType="CheckBox">
                 <Setter Property="Foreground" Value="{DynamicResource Dim}" />
                 <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
                 <Setter Property="FontSize" Value="12.5" />
                 <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="CheckBox">
                             <StackPanel Orientation="Horizontal" Background="Transparent">
-                                <Border x:Name="box" Width="32" Height="18" CornerRadius="9"
-                                        Background="#FF2A2F3A" VerticalAlignment="Center">
-                                    <Ellipse x:Name="knopf" Width="12" Height="12" Fill="#FF7A8296"
-                                             HorizontalAlignment="Left" Margin="3,0,0,0" />
+                                <Border x:Name="box" Width="32" Height="17" CornerRadius="0"
+                                        Background="Transparent" BorderThickness="1"
+                                        BorderBrush="{DynamicResource Rand}" VerticalAlignment="Center">
+                                    <Rectangle x:Name="knopf" Width="10" Height="9"
+                                               Fill="{DynamicResource Dim}"
+                                               HorizontalAlignment="Left" Margin="2,0,0,0" />
                                 </Border>
-                                <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center" />
+                                <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="box" Property="Background" Value="{DynamicResource Accent}" />
-                                    <Setter TargetName="knopf" Property="Fill" Value="White" />
+                                    <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                                    <Setter TargetName="knopf" Property="Fill" Value="{DynamicResource Accent}" />
                                     <Setter TargetName="knopf" Property="HorizontalAlignment" Value="Right" />
-                                    <Setter TargetName="knopf" Property="Margin" Value="0,0,3,0" />
+                                    <Setter TargetName="knopf" Property="Margin" Value="0,0,2,0" />
                                     <Setter Property="Foreground" Value="{DynamicResource Text}" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Text}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.45" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

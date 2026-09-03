@@ -41,12 +41,23 @@ public partial class EinstellungenFenster : Window
         ReihenfolgeWahl.Items.Add("Der Reihe nach");
         ReihenfolgeWahl.SelectedIndex = Programm.Einstellungen.KarussellZufaellig ? 0 : 1;
 
-        StufenFuellen(HelligkeitWahl, Bildstufen, Programm.Einstellungen.Helligkeit, 0);
-        StufenFuellen(SaettigungWahl, Bildstufen, Programm.Einstellungen.Saettigung, 0);
-        StufenFuellen(KontrastWahl, Bildstufen, Programm.Einstellungen.Kontrast, 0);
-        StufenFuellen(GammaWahl, Bildstufen, Programm.Einstellungen.Gamma, 0);
-        StufenFuellen(TempoWahl, Tempostufen, Programm.Einstellungen.TempoProzent, 100);
-        StufenFuellen(LautstaerkeWahl, Lautstufen, Programm.Einstellungen.Lautstaerke, 0);
+        ReglerRichten(HelligkeitRegler, HelligkeitWert, Bildstufen,
+                      Programm.Einstellungen.Helligkeit, w => Programm.Einstellungen.Helligkeit = w);
+        ReglerRichten(SaettigungRegler, SaettigungWert, Bildstufen,
+                      Programm.Einstellungen.Saettigung, w => Programm.Einstellungen.Saettigung = w);
+        ReglerRichten(KontrastRegler, KontrastWert, Bildstufen,
+                      Programm.Einstellungen.Kontrast, w => Programm.Einstellungen.Kontrast = w);
+        ReglerRichten(GammaRegler, GammaWert, Bildstufen,
+                      Programm.Einstellungen.Gamma, w => Programm.Einstellungen.Gamma = w);
+        ReglerRichten(TempoRegler, TempoWert, Tempostufen,
+                      Programm.Einstellungen.TempoProzent, w => Programm.Einstellungen.TempoProzent = w);
+        ReglerRichten(LautstaerkeRegler, LautstaerkeWert, Lautstufen,
+                      Programm.Einstellungen.Lautstaerke, w => Programm.Einstellungen.Lautstaerke = w);
+
+        KopfFassung.Text = "v" + Aktualisierung.Eigene;
+        string? laeuft = Programm.AktuellesVideo;
+        KopfVideo.Text = laeuft is null ? "kein Video" : "laeuft \u00b7 " + Path.GetFileName(laeuft);
+        NavifussFuellen();
 
         foreach (var t in App.Themen) ThemaWahl.Items.Add(new ThemaEintrag(t.Datei, t.Name));
         ThemaWahl.SelectedItem = ThemaWahl.Items.Cast<ThemaEintrag>()
@@ -163,11 +174,114 @@ public partial class EinstellungenFenster : Window
     /// gilt der Normalwert; sonst zeigte die Liste etwas anderes an, als
     /// tatsaechlich laeuft - genau der Fehler aus Fassung 1.3.4.
     /// </summary>
-    private static void StufenFuellen(ComboBox liste, Stufe[] stufen, int wert, int normal)
+    /// <summary>Was an einem Regler haengt: Stufen, Zahlenfeld, Ziel in den Einstellungen.</summary>
+    private sealed record Reglerband(Stufe[] Stufen, TextBlock Anzeige, Action<int> Setzen);
+
+    private readonly Dictionary<Slider, Reglerband> _regler = [];
+
+    /// <summary>
+    /// Wartet nach der letzten Reglerbewegung, bevor der Wert wirklich gesetzt wird.
+    ///
+    /// Bis 1.13.73 standen hier Auswahllisten, mit der Begruendung, ein Regler
+    /// wuerde bei jeder Zwischenstellung einen mpv-Neustart ausloesen. Der Einwand
+    /// stimmt, und hier ist er beantwortet: Der Regler rastet auf denselben fuenf
+    /// Stufen ein wie die Liste vorher, und gesetzt wird erst, wenn er eine halbe
+    /// Sekunde stillsteht. Wer von ganz links nach ganz rechts zieht, loest damit
+    /// einen Neustart aus statt vier. Dasselbe Muster wie beim Zeichenregen, siehe
+    /// MainWindow.
+    /// </summary>
+    private System.Windows.Threading.DispatcherTimer? _reglerWacht;
+    private Slider? _reglerOffen;
+
+    /// <summary>
+    /// Setzt einen Regler auf den gespeicherten Wert und merkt sich, was an ihm haengt.
+    ///
+    /// Gestellt wird ueber den Index der Stufe, nicht ueber den Zahlenwert: Beim
+    /// Tempo liegen die Stufen ungleich weit auseinander (50, 75, 100, 150, 200),
+    /// und ein gleichmaessiges Raster kaeme damit nicht hin.
+    /// </summary>
+    private void ReglerRichten(Slider regler, TextBlock anzeige, Stufe[] stufen,
+                               int wert, Action<int> setzen)
     {
-        foreach (var st in stufen) liste.Items.Add(st);
-        liste.SelectedItem = stufen.FirstOrDefault(st => st.Wert == wert)
-            ?? stufen.First(st => st.Wert == normal);
+        _regler[regler] = new Reglerband(stufen, anzeige, setzen);
+        regler.Maximum = stufen.Length - 1;
+
+        int stelle = Array.FindIndex(stufen, st => st.Wert == wert);
+        if (stelle < 0) stelle = Array.FindIndex(stufen, st => st.Wert == 0);
+        if (stelle < 0) stelle = stufen.Length / 2;
+
+        regler.Value = stelle;
+        anzeige.Text = Wertetext(stufen, stufen[stelle]);
+    }
+
+    /// <summary>
+    /// Zahl und Wort nebeneinander: die Zahl fuer die Genauigkeit, das Wort fuer
+    /// die Bedeutung.
+    ///
+    /// Ein Pluszeichen bekommt nur, wer auch negativ werden kann. Bei Helligkeit
+    /// heisst "+20" etwas, bei Tempo stand am 03.09.2026 "+100 normal" im Fenster,
+    /// und das ist Unsinn: Hundert Prozent sind dort der Normalwert, kein Zuschlag.
+    /// </summary>
+    private static string Wertetext(Stufe[] stufen, Stufe stufe)
+    {
+        bool kannNegativ = stufen.Any(s => s.Wert < 0);
+        string zahl = kannNegativ && stufe.Wert > 0
+            ? "+" + stufe.Wert
+            : stufe.Wert.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return zahl + "  " + stufe.Text;
+    }
+
+    /// <summary>
+    /// Ein Regler wurde bewegt. Die Zahl daneben folgt sofort, der Wert erst nach
+    /// einer halben Sekunde Ruhe.
+    /// </summary>
+    private void ReglerGeaendert(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (sender is not Slider regler || !_regler.TryGetValue(regler, out var band)) return;
+
+        int stelle = Math.Clamp((int)Math.Round(regler.Value), 0, band.Stufen.Length - 1);
+        band.Anzeige.Text = Wertetext(band.Stufen, band.Stufen[stelle]);
+        if (_laedt) return;
+
+        _reglerOffen = regler;
+        _reglerWacht ??= Wachtbauen();
+        _reglerWacht.Stop();
+        _reglerWacht.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer Wachtbauen()
+    {
+        var uhr = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        uhr.Tick += (_, _) =>
+        {
+            uhr.Stop();
+            if (_reglerOffen is not Slider r || !_regler.TryGetValue(r, out var band)) return;
+
+            int stelle = Math.Clamp((int)Math.Round(r.Value), 0, band.Stufen.Length - 1);
+            band.Setzen(band.Stufen[stelle].Wert);
+            Programm.Einstellungen.Speichern();
+            Programm.HintergrundNeuAufbauen();
+        };
+        return uhr;
+    }
+
+    /// <summary>Die drei Zeilen unten in der Bereichsspalte. Echte Zahlen, keine Zierschrift.</summary>
+    private void NavifussFuellen()
+    {
+        int videos = 0;
+        try
+        {
+            videos = Directory.EnumerateFiles(Settings.VideoOrdner)
+                              .Count(Hintergrund.IstUnterstuetzt);
+        }
+        catch { /* Ordner fehlt, dann bleibt es bei null */ }
+
+        int schirme = Math.Max(1, Native.Bildschirme().Count);
+        Bereiche.Tag = $"{videos} Videos\n{schirme} Bildschirm" + (schirme == 1 ? "" : "e")
+                     + $"\n{Programm.Einstellungen.Zeitplan.Count} Zeitpunkte";
     }
 
     private sealed record MinutenEintrag(int Wert)
@@ -244,36 +358,8 @@ public partial class EinstellungenFenster : Window
         Programm.KarussellNeuAufbauen();
     }
 
-    private void HelligkeitGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(HelligkeitWahl, w => Programm.Einstellungen.Helligkeit = w);
-
-    private void SaettigungGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(SaettigungWahl, w => Programm.Einstellungen.Saettigung = w);
-
-    private void KontrastGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(KontrastWahl, w => Programm.Einstellungen.Kontrast = w);
-
-    private void GammaGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(GammaWahl, w => Programm.Einstellungen.Gamma = w);
-
-    private void TempoGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(TempoWahl, w => Programm.Einstellungen.TempoProzent = w);
-
-    private void LautstaerkeGewaehlt(object sender, SelectionChangedEventArgs e)
-        => BildwertUebernehmen(LautstaerkeWahl, w => Programm.Einstellungen.Lautstaerke = w);
-
-    /// <summary>
-    /// Alle vier Werte gehen als Schalter an mpv und wirken erst beim Aufbau,
-    /// deshalb jedes Mal ein Neuaufbau. Der kostet rund eine halbe Sekunde
-    /// schwarzes Bild, weshalb es Stufen sind und kein Regler.
-    /// </summary>
-    private void BildwertUebernehmen(ComboBox liste, Action<int> setzen)
-    {
-        if (_laedt || liste.SelectedItem is not Stufe st) return;
-        setzen(st.Wert);
-        Programm.Einstellungen.Speichern();
-        Programm.HintergrundNeuAufbauen();
-    }
+    // Die sechs Einzelhandler sind am 03.09.2026 entfallen; alle Regler laufen
+    // jetzt durch ReglerGeaendert, das den Zusammenhang aus _regler holt.
 
     // ---------- Zeitplan ----------
 

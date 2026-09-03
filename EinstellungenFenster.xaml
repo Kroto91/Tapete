@@ -1,10 +1,9 @@
-﻿<Window x:Class="Tapete.EinstellungenFenster"
+<Window x:Class="Tapete.EinstellungenFenster"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Einstellungen"
-        Width="560" SizeToContent="Height"
-        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        Width="880" Height="620"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
         Background="{DynamicResource Bg}"
@@ -18,22 +17,234 @@
     </shell:WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <Style x:Key="Abschnitt" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
-            <Setter Property="FontFamily" Value="{DynamicResource TechFont}" />
-            <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,20,0,10" />
-        </Style>
+
+        <!-- ================= Schrift und Abstaende ================= -->
+
         <Style x:Key="Hinweis" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource Dim}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="0,4,0,0" />
+            <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
         <Style x:Key="Zeile" TargetType="Grid">
             <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
+        <Style x:Key="Feldname" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- ================= Navigation links ================= -->
+
+        <!-- Ein TabControl, kein eigener Umschaltmechanismus: WPF bringt genau
+             das mit, und ein selbstgebauter Wechsel waere mehr Code fuer
+             dasselbe Verhalten. Getauscht ist nur die Darstellung. -->
+        <Style x:Key="NaviEintrag" TargetType="TabItem">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid x:Name="wurzel" Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Rectangle x:Name="balken" Grid.Column="0" Fill="Transparent" />
+                            <TextBlock x:Name="nummer" Grid.Column="1" Text="{TemplateBinding Tag}"
+                                       FontFamily="{DynamicResource TechFont}" FontSize="10.5"
+                                       Foreground="{DynamicResource Dim}"
+                                       Margin="14,8,10,8" VerticalAlignment="Center" />
+                            <ContentPresenter x:Name="titel" Grid.Column="2"
+                                              ContentSource="Header"
+                                              Margin="0,8,14,8" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{DynamicResource Dim}"
+                                              TextBlock.FontSize="12.5" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="titel" Property="TextBlock.Foreground"
+                                        Value="{DynamicResource Text}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="wurzel" Property="Background"
+                                        Value="{DynamicResource Card}" />
+                                <Setter TargetName="balken" Property="Fill"
+                                        Value="{DynamicResource Accent}" />
+                                <Setter TargetName="titel" Property="TextBlock.Foreground"
+                                        Value="{DynamicResource Accent}" />
+                                <Setter TargetName="nummer" Property="Foreground"
+                                        Value="{DynamicResource Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Navigation" TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="208" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="{DynamicResource Panel}"
+                                    BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+                                <DockPanel Margin="0,14,0,0">
+                                    <TextBlock DockPanel.Dock="Top" Text="BEREICHE"
+                                               FontFamily="{DynamicResource TechFont}" FontSize="10"
+                                               Foreground="{DynamicResource Dim}"
+                                               Margin="16,0,16,10" />
+                                    <!-- Der Fuss haengt unten und zeigt echte Zahlen,
+                                         keine Zierschrift. -->
+                                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}"
+                                            BorderThickness="0,1,0,0" Padding="16,10,16,12" Margin="0,10,0,0">
+                                        <!-- Ueber Tag gebunden: Ein x:Name im Template
+                                             legt kein Feld im Code an, der Fusstext waere
+                                             von dort aus nicht erreichbar. -->
+                                        <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                                   FontFamily="{DynamicResource TechFont}" FontSize="10.5"
+                                                   Foreground="{DynamicResource Dim}" LineHeight="17"
+                                                   TextWrapping="Wrap" />
+                                    </Border>
+                                    <!-- StackPanel, nicht TabPanel: Ein TabPanel ordnet waagerecht an und
+                                         schiebt den gewaehlten Reiter in die letzte Zeile.
+                                         Im Bildschirmfoto vom 03.09.2026 standen dadurch
+                                         Karussell und Zeitplan nebeneinander und der aktive
+                                         Eintrag ganz unten. -->
+                                    <StackPanel IsItemsHost="True" />
+                                </DockPanel>
+                            </Border>
+
+                            <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ================= Regler ================= -->
+
+        <Style x:Key="ReglerGriff" TargetType="Thumb">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Rectangle Width="3" Height="15" Fill="{DynamicResource Accent}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ReglerFlaeche" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fuenf Raststufen, dieselben wie vorher in den Auswahllisten. Der Regler
+             laeuft ueber den Index null bis vier, nicht ueber den Zahlenwert: Beim
+             Tempo liegen die Stufen ungleich weit auseinander (50, 75, 100, 150,
+             200), und ein Regler mit gleichmaessigem Raster kaeme damit nicht hin. -->
+        <Style x:Key="Regler" TargetType="Slider">
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="4" />
+            <Setter Property="TickFrequency" Value="1" />
+            <Setter Property="IsSnapToTickEnabled" Value="True" />
+            <Setter Property="SmallChange" Value="1" />
+            <Setter Property="LargeChange" Value="1" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource Fokus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Background="Transparent">
+                            <TickBar Placement="Top" Height="9" Margin="0,0,0,7"
+                                     VerticalAlignment="Center"
+                                     Fill="{DynamicResource Rand}"
+                                     Visibility="Visible" SnapsToDevicePixels="True" />
+                            <Rectangle Height="1" VerticalAlignment="Center"
+                                       Fill="{DynamicResource Rand}" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ReglerFlaeche}"
+                                                  Command="Slider.DecreaseLarge" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ReglerGriff}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ReglerFlaeche}"
+                                                  Command="Slider.IncreaseLarge" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Reglerwert" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource TechFont}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+
+        <!-- ================= Abschnittskopf und Rahmen ================= -->
+
+        <Style x:Key="Ueberschrift" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="FontFamily" Value="{DynamicResource TechFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- Zwei Winkel an gegenueberliegenden Ecken, das einzige Zierelement.
+             Keine Leuchteffekte und keine Scanlinien: Beide kosten in WPF
+             Zeichenzeit, und am 03.09.2026 hat genau solche Zeichenarbeit das
+             Fenster beim Ziehen ruckeln lassen. -->
+        <Style x:Key="Klammerblock" TargetType="ContentControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Grid>
+                            <Border BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                                    Padding="16,10">
+                                <ContentPresenter />
+                            </Border>
+                            <Path Data="M0,10 L0,0 L10,0" Stroke="{DynamicResource Accent}"
+                                  StrokeThickness="1" HorizontalAlignment="Left"
+                                  VerticalAlignment="Top" SnapsToDevicePixels="True" />
+                            <Path Data="M10,0 L10,10 L0,10" Stroke="{DynamicResource Accent}"
+                                  StrokeThickness="1" HorizontalAlignment="Right"
+                                  VerticalAlignment="Bottom" SnapsToDevicePixels="True" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     <Border BorderBrush="{DynamicResource Line}" BorderThickness="1">
@@ -46,227 +257,393 @@
 
             <Rectangle Grid.RowSpan="3" Fill="{DynamicResource Raster}" IsHitTestVisible="False" />
 
+            <!-- ================= Titelzeile ================= -->
             <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitelZiehen">
-                <TextBlock Text="EINSTELLUNGEN" Foreground="{DynamicResource Dim}" FontSize="11.5"
-                           FontFamily="{DynamicResource TechFont}"
-                           Margin="18,0,0,0" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <Rectangle Width="7" Height="7" Fill="{DynamicResource Accent}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="TAPETE" Foreground="{DynamicResource Text}" FontSize="11.5"
+                               FontFamily="{DynamicResource TechFont}" FontWeight="SemiBold"
+                               Margin="10,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="KopfFassung" Foreground="{DynamicResource Dim}" FontSize="11"
+                               FontFamily="{DynamicResource TechFont}"
+                               Margin="10,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="KopfVideo" Foreground="{DynamicResource Dim}" FontSize="11"
+                               FontFamily="{DynamicResource TechFont}"
+                               Margin="18,0,0,0" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" MaxWidth="380" />
+                </StackPanel>
                 <Button Style="{StaticResource Chrome}" Content="&#xE8BB;" Click="Schliessen"
                         HorizontalAlignment="Right" Margin="0,1,4,0"
                         AutomationProperties.Name="Schließen" ToolTip="Schließen" />
             </Grid>
 
-            <!-- Rollbereich, weil das Fenster sonst mit dem Inhalt waechst. Am
-                 02.09.2026 war es rund 1230 Punkte hoch; auf einem Bildschirm mit
-                 1080 Zeilen waere der Knopf "Fertig" nicht mehr erreichbar gewesen,
-                 und weil das Fenster in der Groesse nicht veraenderbar ist, haette
-                 daran auch niemand etwas aendern koennen. -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
-            <StackPanel Margin="24,0,24,8">
+            <!-- ================= Bereiche ================= -->
+            <TabControl Grid.Row="1" x:Name="Bereiche" Style="{StaticResource Navigation}"
+                        Background="Transparent" BorderThickness="0">
 
-                <TextBlock Text="Erscheinungsbild" Style="{StaticResource Abschnitt}" Margin="0,4,0,10" />
+                <!-- 01 Erscheinungsbild -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="01" Header="Erscheinungsbild">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="ERSCHEINUNGSBILD" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="01 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Vier Entwürfe, alle auf Lesbarkeit geprüft." />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Aussehen" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="ThemaWahl" Width="260" HorizontalAlignment="Right"
-                              SelectionChanged="ThemaGewaehlt" />
-                </Grid>
-                <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,10"
-                           Text="Wirkt sofort, ohne Neustart. Alle vier sind auf Lesbarkeit geprüft; der Text steht in jedem mindestens im Verhältnis 4,5 zu 1 zum Hintergrund." />
+                            <Grid Style="{StaticResource Zeile}">
+                                <TextBlock Text="Aussehen" Style="{StaticResource Feldname}" />
+                                <ComboBox x:Name="ThemaWahl" Width="260" HorizontalAlignment="Right"
+                                          SelectionChanged="ThemaGewaehlt" />
+                            </Grid>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wirkt sofort, ohne Neustart. Der Text steht in jedem mindestens im Verhältnis 4,5 zu 1 zum Hintergrund." />
 
-                <CheckBox x:Name="EffektSchalter" Content="Zeichenregen im Hintergrund"
-                          Checked="EffekteGeaendert" Unchecked="EffekteGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Läuft hinter den Kacheln und ist nur in den freien Flächen zu sehen, nie über einem Vorschaubild. Jedes Aussehen hat seinen eigenen: Cyberpunk dichte Zeichen, Alarm einen ruhigen Datenstrom, HUD Nullen und Einsen, Retro grobe Blöcke." />
+                            <CheckBox x:Name="EffektSchalter" Content="Zeichenregen im Hintergrund"
+                                      Checked="EffekteGeaendert" Unchecked="EffekteGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Läuft hinter den Kacheln und ist nur in den freien Flächen zu sehen, nie über einem Vorschaubild. Jedes Aussehen hat seinen eigenen: Cyberpunk dichte Zeichen, Alarm einen ruhigen Datenstrom, HUD Nullen und Einsen, Retro grobe Blöcke." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <TextBlock Text="Anzeige" Style="{StaticResource Abschnitt}" />
+                <!-- 02 Anzeige -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="02" Header="Anzeige">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="ANZEIGE" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="02 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wo das Video läuft und wie sparsam." />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Bildschirm" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="BildschirmWahl" Width="260" HorizontalAlignment="Right"
-                              SelectionChanged="BildschirmGewaehlt" />
-                </Grid>
+                            <Grid Style="{StaticResource Zeile}">
+                                <TextBlock Text="Bildschirm" Style="{StaticResource Feldname}" />
+                                <ComboBox x:Name="BildschirmWahl" Width="260" HorizontalAlignment="Right"
+                                          SelectionChanged="BildschirmGewaehlt" />
+                            </Grid>
 
-                <CheckBox x:Name="BildrateSchalter" Content="Halbe Bildrate"
-                          Checked="BildrateGeaendert" Unchecked="BildrateGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}" Margin="0,4,0,0"
-                           Text="Rechnet jedes Video einmalig auf die halbe Bildrate herunter. Spart Grafiklast, ist aber im Gegensatz zur Auflösung zu sehen." />
+                            <CheckBox x:Name="BildrateSchalter" Content="Halbe Bildrate"
+                                      Checked="BildrateGeaendert" Unchecked="BildrateGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Rechnet jedes Video einmalig auf die halbe Bildrate herunter. Spart Grafiklast, ist aber im Gegensatz zur Auflösung zu sehen." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <TextBlock Text="Bild und Ton" Style="{StaticResource Abschnitt}" />
+                <!-- 03 Bild und Ton -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="03" Header="Bild und Ton">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="BILD UND TON" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="03 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,14"
+                                       Text="Sechs Werte gehen beim Start an den Abspieler." />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Helligkeit" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="HelligkeitWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="HelligkeitGewaehlt" />
-                </Grid>
+                            <ContentControl Style="{StaticResource Klammerblock}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="96" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Farben" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="SaettigungWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="SaettigungGewaehlt" />
-                </Grid>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Helligkeit" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="0" Grid.Column="1" x:Name="HelligkeitRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Helligkeit"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="0" Grid.Column="2" x:Name="HelligkeitWert"
+                                               Style="{StaticResource Reglerwert}" />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Kontrast" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="KontrastWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="KontrastGewaehlt" />
-                </Grid>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Farben" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="1" Grid.Column="1" x:Name="SaettigungRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Farbsättigung"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2" x:Name="SaettigungWert"
+                                               Style="{StaticResource Reglerwert}" />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Mitteltöne" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="GammaWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="GammaGewaehlt" />
-                </Grid>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Kontrast" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="2" Grid.Column="1" x:Name="KontrastRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Kontrast"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="2" Grid.Column="2" x:Name="KontrastWert"
+                                               Style="{StaticResource Reglerwert}" />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Geschwindigkeit" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="TempoWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="TempoGewaehlt" />
-                </Grid>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Mitteltöne" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="3" Grid.Column="1" x:Name="GammaRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Mitteltöne"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="3" Grid.Column="2" x:Name="GammaWert"
+                                               Style="{StaticResource Reglerwert}" />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Lautstärke" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="LautstaerkeWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="LautstaerkeGewaehlt" />
-                </Grid>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Tempo" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="4" Grid.Column="1" x:Name="TempoRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Wiedergabetempo"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="4" Grid.Column="2" x:Name="TempoWert"
+                                               Style="{StaticResource Reglerwert}" />
 
-                <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,12"
-                           Text="Ton ist ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem ein eigener Abspieler, dann kommt der Ton auch mehrfach." />
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Lautstärke" Style="{StaticResource Feldname}" />
+                                    <Slider Grid.Row="5" Grid.Column="1" x:Name="LautstaerkeRegler"
+                                            Style="{StaticResource Regler}" Margin="10,0"
+                                            AutomationProperties.Name="Lautstärke"
+                                            ValueChanged="ReglerGeaendert" />
+                                    <TextBlock Grid.Row="5" Grid.Column="2" x:Name="LautstaerkeWert"
+                                               Style="{StaticResource Reglerwert}" />
+                                </Grid>
+                            </ContentControl>
 
-                <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe, gewöhnliche Videos mitrechnen"
-                          Checked="HdrGeaendert" Unchecked="HdrGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Braucht einen HDR-fähigen Bildschirm und eingeschaltetes HDR in Windows. Liegt das Video selbst in HDR vor, wird es unverändert durchgereicht. Ein gewöhnliches Video rechnet der Abspieler beim Anzeigen auf den größeren Helligkeitsumfang hoch; das geschieht auf der Grafikkarte, es entsteht keine zweite Datei. Erfundene Helligkeit bleibt erfunden: Was die Aufnahme nie enthielt, kann auch das Umrechnen nicht zeigen. Eingeschaltet schreibt der Abspieler zusätzlich mpv-hdr.txt neben das Protokoll." />
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,10,0,16"
+                                       Text="Ton ist ab Werk aus. Bei mehreren Bildschirmen läuft auf jedem ein eigener Abspieler, dann kommt der Ton auch mehrfach. Eine Änderung wirkt, sobald der Regler eine halbe Sekunde stillsteht; der Abspieler startet dabei neu." />
 
-                <TextBlock Text="Strom sparen" Style="{StaticResource Abschnitt}" />
+                            <CheckBox x:Name="HdrSchalter" Content="HDR-Ausgabe, gewöhnliche Videos mitrechnen"
+                                      Checked="HdrGeaendert" Unchecked="HdrGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Braucht einen HDR-fähigen Bildschirm und eingeschaltetes HDR in Windows. Liegt das Video selbst in HDR vor, wird es unverändert durchgereicht. Ein gewöhnliches Video rechnet der Abspieler beim Anzeigen auf den größeren Helligkeitsumfang hoch; das geschieht auf der Grafikkarte, es entsteht keine zweite Datei. Erfundene Helligkeit bleibt erfunden: Was die Aufnahme nie enthielt, kann auch das Umrechnen nicht zeigen." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <CheckBox x:Name="PauseSchalter" Content="Zurückhalten, wenn der Desktop verdeckt ist"
-                          Checked="PauseGeaendert" Unchecked="PauseGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Hält das Video an, sobald kein Stück Desktop mehr zu sehen ist; der Abspieler läuft dabei weiter. Derselbe Haken steuert die Vollbild-Automatik: Läuft ein Spiel oder ein Film im Vollbild, schaltet Tapete zusätzlich den Spielmodus ein und beendet den Abspieler ganz. Ohne Haken passiert bei Vollbild nichts mehr, von Hand geht der Spielmodus weiter mit Strg+Alt+G." />
+                <!-- 04 Strom sparen -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="04" Header="Strom sparen">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="STROM SPAREN" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="04 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wann das Video von selbst anhält." />
 
-                <CheckBox x:Name="AkkuSchalter" Content="Pause im Akkubetrieb" Margin="0,10,0,0"
-                          Checked="AkkuGeaendert" Unchecked="AkkuGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Hält das Video an, sobald der Rechner ohne Netzstecker läuft. Auf einem Rechner ohne Akku ohne Wirkung." />
+                            <CheckBox x:Name="PauseSchalter" Content="Zurückhalten, wenn der Desktop verdeckt ist"
+                                      Checked="PauseGeaendert" Unchecked="PauseGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,6,0,16"
+                                       Text="Hält das Video an, sobald kein Stück Desktop mehr zu sehen ist; der Abspieler läuft dabei weiter. Derselbe Haken steuert die Vollbild-Automatik: Läuft ein Spiel oder ein Film im Vollbild, schaltet Tapete zusätzlich den Spielmodus ein und beendet den Abspieler ganz. Ohne Haken passiert bei Vollbild nichts mehr, von Hand geht der Spielmodus weiter mit Strg+Alt+G." />
 
-                <TextBlock Text="Karussell" Style="{StaticResource Abschnitt}" />
+                            <CheckBox x:Name="AkkuSchalter" Content="Pause im Akkubetrieb"
+                                      Checked="AkkuGeaendert" Unchecked="AkkuGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Hält das Video an, sobald der Rechner ohne Netzstecker läuft. Auf einem Rechner ohne Akku ohne Wirkung." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <CheckBox x:Name="KarussellSchalter" Content="Hintergrund von selbst wechseln"
-                          Checked="KarussellGeaendert" Unchecked="KarussellGeaendert" />
+                <!-- 05 Karussell -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="05" Header="Karussell">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="KARUSSELL" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="05 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wechsel nach Standzeit." />
 
-                <Grid Style="{StaticResource Zeile}" Margin="0,14,0,12">
-                    <TextBlock Text="Ein Video bleibt" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="MinutenWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="MinutenGewaehlt" />
-                </Grid>
+                            <CheckBox x:Name="KarussellSchalter" Content="Hintergrund von selbst wechseln"
+                                      Checked="KarussellGeaendert" Unchecked="KarussellGeaendert" />
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Reihenfolge" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="ReihenfolgeWahl" Width="180" HorizontalAlignment="Right"
-                              SelectionChanged="ReihenfolgeGewaehlt" />
-                </Grid>
+                            <Grid Style="{StaticResource Zeile}" Margin="0,16,0,12">
+                                <TextBlock Text="Ein Video bleibt" Style="{StaticResource Feldname}" />
+                                <ComboBox x:Name="MinutenWahl" Width="200" HorizontalAlignment="Right"
+                                          SelectionChanged="MinutenGewaehlt" />
+                            </Grid>
 
-                <TextBlock x:Name="KarussellStand" Style="{StaticResource Hinweis}" Margin="0,0,0,0" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Welche Videos mitlaufen, entscheidet der Haken oben links auf jeder Kachel. Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag im Symbol neben der Uhr." />
+                            <Grid Style="{StaticResource Zeile}">
+                                <TextBlock Text="Reihenfolge" Style="{StaticResource Feldname}" />
+                                <ComboBox x:Name="ReihenfolgeWahl" Width="200" HorizontalAlignment="Right"
+                                          SelectionChanged="ReihenfolgeGewaehlt" />
+                            </Grid>
 
-                <TextBlock Text="Zeitplan" Style="{StaticResource Abschnitt}" />
+                            <TextBlock x:Name="KarussellStand" Style="{StaticResource Hinweis}" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Welche Videos mitlaufen, entscheidet der Haken oben links auf jeder Kachel. Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag im Symbol neben der Uhr." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <CheckBox x:Name="ZeitplanSchalter" Content="Nach Uhrzeit wechseln"
-                          Checked="ZeitplanGeaendert" Unchecked="ZeitplanGeaendert" />
+                <!-- 06 Zeitplan -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="06" Header="Zeitplan">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="ZEITPLAN" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="06 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wechsel nach Uhrzeit, auf die Minute genau." />
 
-                <Grid Style="{StaticResource Zeile}" Margin="0,14,0,4">
-                    <TextBlock Text="Ab" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <ComboBox x:Name="ZeitWahl" Width="62" />
-                        <TextBlock Text=":" Foreground="{DynamicResource Text}" FontSize="13"
-                                   VerticalAlignment="Center" Margin="6,0,6,0" />
-                        <ComboBox x:Name="MinuteWahl" Width="62" Margin="0,0,10,0" />
-                        <ComboBox x:Name="ZeitVideoWahl" Width="220" />
-                    </StackPanel>
-                </Grid>
+                            <CheckBox x:Name="ZeitplanSchalter" Content="Nach Uhrzeit wechseln"
+                                      Checked="ZeitplanGeaendert" Unchecked="ZeitplanGeaendert" />
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
-                    <Button Style="{StaticResource Ghost}" Content="Eintragen" Click="ZeitpunktEintragen"
-                            Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Ghost}" Content="Entfernen" Click="ZeitpunktEntfernen" />
-                </StackPanel>
+                            <ContentControl Style="{StaticResource Klammerblock}" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <TextBlock Text="Ab" Style="{StaticResource Feldname}" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <ComboBox x:Name="ZeitWahl" Width="62" />
+                                            <TextBlock Text=":" Style="{StaticResource Feldname}"
+                                                       Margin="6,0,6,0" />
+                                            <ComboBox x:Name="MinuteWahl" Width="62" Margin="0,0,12,0" />
+                                            <ComboBox x:Name="ZeitVideoWahl" Width="260" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource Ghost}" Content="Eintragen"
+                                                Click="ZeitpunktEintragen" Margin="0,0,8,0" />
+                                        <Button Style="{StaticResource Ghost}" Content="Entfernen"
+                                                Click="ZeitpunktEntfernen" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ContentControl>
 
-                <TextBlock x:Name="ZeitplanStand" Style="{StaticResource Hinweis}" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Gewechselt wird, sobald eine eingetragene Uhrzeit erreicht ist, auf die Minute genau. Vorher passiert nichts: Wer um zehn Uhr einen Eintrag für elf anlegt, sieht bis elf das bisherige Video. Hat der Rechner geschlafen und mehrere Zeiten übersprungen, gilt die späteste davon. Ist der Zeitplan an, ruht das Karussell." />
+                            <TextBlock x:Name="ZeitplanStand" Style="{StaticResource Hinweis}" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Gewechselt wird, sobald eine eingetragene Uhrzeit erreicht ist. Vorher passiert nichts: Wer um zehn Uhr einen Eintrag für elf anlegt, sieht bis elf das bisherige Video. Hat der Rechner geschlafen und mehrere Zeiten übersprungen, gilt die späteste davon. Ist der Zeitplan an, ruht das Karussell." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <TextBlock Text="Virtuelle Desktops" Style="{StaticResource Abschnitt}" />
+                <!-- 07 Virtuelle Desktops -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="07" Header="Virtuelle Desktops">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="VIRTUELLE DESKTOPS" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="07 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Je Desktop ein eigener Hintergrund." />
 
-                <CheckBox x:Name="ProDesktopSchalter" Content="Je Desktop ein eigenes Video"
-                          Checked="ProDesktopGeaendert" Unchecked="ProDesktopGeaendert" />
+                            <CheckBox x:Name="ProDesktopSchalter" Content="Je Desktop ein eigenes Video"
+                                      Checked="ProDesktopGeaendert" Unchecked="ProDesktopGeaendert" />
 
-                <Grid Style="{StaticResource Zeile}" Margin="0,14,0,4">
-                    <TextBlock Text="Auf diesem Desktop" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="DesktopVideoWahl" Width="240" HorizontalAlignment="Right" />
-                </Grid>
+                            <ContentControl Style="{StaticResource Klammerblock}" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <TextBlock Text="Auf diesem Desktop" Style="{StaticResource Feldname}" />
+                                        <ComboBox x:Name="DesktopVideoWahl" Width="260"
+                                                  HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource Ghost}" Content="Zuweisen"
+                                                Click="DesktopZuweisen" Margin="0,0,8,0" />
+                                        <Button Style="{StaticResource Ghost}" Content="Lösen"
+                                                Click="DesktopLoesen" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ContentControl>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
-                    <Button Style="{StaticResource Ghost}" Content="Zuweisen" Click="DesktopZuweisen"
-                            Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Ghost}" Content="Lösen" Click="DesktopLoesen" />
-                </StackPanel>
+                            <TextBlock x:Name="DesktopStand" Style="{StaticResource Hinweis}" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Gemeint sind die Desktops, die Windows mit Strg+Windows+D anlegt und mit Strg+Windows+Pfeil wechselt. Zum Zuweisen auf den gewünschten Desktop gehen, hier ein Video wählen und auf Zuweisen klicken. Für einen Desktop ohne Zuweisung läuft das Video weiter, das gerade zu sehen ist." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <TextBlock x:Name="DesktopStand" Style="{StaticResource Hinweis}" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Gemeint sind die Desktops, die Windows mit Strg+Windows+D anlegt und mit Strg+Windows+Pfeil wechselt. Zum Zuweisen auf den gewünschten Desktop gehen, hier ein Video wählen und auf Zuweisen klicken. Für einen Desktop ohne Zuweisung läuft das Video weiter, das gerade zu sehen ist." />
+                <!-- 08 Profile -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="08" Header="Profile">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="PROFILE" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="08 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Gespeicherte Zustände unter eigenem Namen." />
 
-                <TextBlock Text="Profile" Style="{StaticResource Abschnitt}" />
+                            <ContentControl Style="{StaticResource Klammerblock}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <TextBlock Text="Name" Style="{StaticResource Feldname}" />
+                                        <ComboBox x:Name="ProfilWahl" Width="280" HorizontalAlignment="Right"
+                                                  IsEditable="True" SelectionChanged="ProfilGewaehlt" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource Ghost}" Content="Speichern"
+                                                Click="ProfilSpeichern" Margin="0,0,8,0" />
+                                        <Button Style="{StaticResource Ghost}" Content="Löschen"
+                                                Click="ProfilLoeschen" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ContentControl>
 
-                <Grid Style="{StaticResource Zeile}">
-                    <TextBlock Text="Name" Foreground="{DynamicResource Text}" FontSize="13"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="ProfilWahl" Width="260" HorizontalAlignment="Right"
-                              IsEditable="True" SelectionChanged="ProfilGewaehlt" />
-                </Grid>
+                            <TextBlock x:Name="ProfilStand" Style="{StaticResource Hinweis}" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Ein Profil merkt sich den Bildschirm-Modus, das laufende Video und die per Rechtsklick vergebenen Zuweisungen. Namen eintippen und auf Speichern; aus der Liste wählen lädt es sofort." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
-                    <Button Style="{StaticResource Ghost}" Content="Speichern" Click="ProfilSpeichern"
-                            Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Ghost}" Content="Löschen" Click="ProfilLoeschen" />
-                </StackPanel>
+                <!-- 09 Windows -->
+                <TabItem Style="{StaticResource NaviEintrag}" Tag="09" Header="Windows">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                        <StackPanel Margin="24,18,24,20">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="WINDOWS" Style="{StaticResource Ueberschrift}" />
+                                <TextBlock Text="09 / 09" FontFamily="{DynamicResource TechFont}"
+                                           FontSize="10.5" Foreground="{DynamicResource Dim}"
+                                           Margin="12,0,0,0" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,0,0,16"
+                                       Text="Wie sich Tapete ins System einträgt." />
 
-                <TextBlock x:Name="ProfilStand" Style="{StaticResource Hinweis}" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Ein Profil merkt sich den Bildschirm-Modus, das laufende Video und die per Rechtsklick vergebenen Zuweisungen. Namen eintippen und auf Speichern; aus der Liste wählen lädt es sofort." />
+                            <CheckBox x:Name="AutostartSchalter" Content="Mit Windows starten"
+                                      Checked="AutostartGeaendert" Unchecked="AutostartGeaendert" />
+                            <TextBlock Style="{StaticResource Hinweis}" Margin="0,6,0,16"
+                                       Text="Legt eine Verknüpfung im Autostart-Ordner an. Tapete startet dann ohne Fenster und setzt den zuletzt gewählten Hintergrund." />
 
-                <TextBlock Text="Windows" Style="{StaticResource Abschnitt}" />
+                            <CheckBox x:Name="SchonerSchalter" Content="Als Bildschirmschoner verwenden"
+                                      Checked="SchonerGeaendert" Unchecked="SchonerGeaendert" />
+                            <TextBlock x:Name="SchonerStand" Style="{StaticResource Hinweis}" />
+                            <TextBlock Style="{StaticResource Hinweis}"
+                                       Text="Zeigt dasselbe Video im Vollbild, wenn der Rechner eine Weile unbenutzt war. Jede Taste und jede Mausbewegung beendet es wieder." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
 
-                <CheckBox x:Name="AutostartSchalter" Content="Mit Windows starten"
-                          Checked="AutostartGeaendert" Unchecked="AutostartGeaendert" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Legt eine Verknüpfung im Autostart-Ordner an. Tapete startet dann ohne Fenster und setzt den zuletzt gewählten Hintergrund." />
+            </TabControl>
 
-                <CheckBox x:Name="SchonerSchalter" Content="Als Bildschirmschoner verwenden"
-                          Margin="0,10,0,0" Checked="SchonerGeaendert" Unchecked="SchonerGeaendert" />
-                <TextBlock x:Name="SchonerStand" Style="{StaticResource Hinweis}" />
-                <TextBlock Style="{StaticResource Hinweis}"
-                           Text="Zeigt dasselbe Video im Vollbild, wenn der Rechner eine Weile unbenutzt war. Jede Taste und jede Mausbewegung beendet es wieder." />
-            </StackPanel>
-            </ScrollViewer>
-
+            <!-- ================= Fusszeile ================= -->
             <Border Grid.Row="2" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0"
-                    Background="{DynamicResource Panel}" Padding="24,12">
-                <Button Style="{StaticResource Primary}" Content="Fertig" Click="Schliessen"
-                        HorizontalAlignment="Right" />
+                    Background="{DynamicResource Panel}" Padding="24,10">
+                <Grid>
+                    <TextBlock Text="Änderungen wirken sofort" Foreground="{DynamicResource Dim}"
+                               FontFamily="{DynamicResource TechFont}" FontSize="10.5"
+                               VerticalAlignment="Center" />
+                    <Button Style="{StaticResource Primary}" Content="Fertig" Click="Schliessen"
+                            HorizontalAlignment="Right" />
+                </Grid>
             </Border>
         </Grid>
     </Border>
