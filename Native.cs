@@ -449,15 +449,34 @@ internal static class Native
     /// <summary>
     /// Die Kennung des gerade offenen virtuellen Desktops, oder null.
     ///
-    /// Gefragt wird das Fenster im Vordergrund, denn das liegt immer auf dem
-    /// offenen Desktop. Fenster, die auf allen Desktops zugleich liegen - der
-    /// Desktop selbst zum Beispiel, oder ein angeheftetes Fenster - antworten mit
-    /// 0x8002802B; dann laesst sich nichts sagen und der Aufrufer behaelt, was er
-    /// hat. Am 03.09.2026 auf dem Rechner des Nutzers geprueft: Das
-    /// Vordergrundfenster lieferte eine Kennung, das Shell-Fenster den Fehler.
+    /// Gelesen wird aus der Registry, wo der Explorer den offenen Desktop fuehrt
+    /// und bei jedem Wechsel neu schreibt. Sechzehn Bytes, eine GUID.
+    ///
+    /// Der erste Anlauf am 03.09.2026 fragte stattdessen das Fenster im
+    /// Vordergrund ueber IVirtualDesktopManager. Das war falsch gedacht: Wer auf
+    /// den Desktop schaut - also genau dann, wenn der Hintergrund zu sehen ist -
+    /// hat den Desktop selbst im Vordergrund, und der liegt auf allen virtuellen
+    /// Desktops zugleich. Windows antwortet dann mit 0x8002802B, und die
+    /// Erkennung lief ins Leere. Im Protokoll des Nutzers stand viermal
+    /// "nennt keinen Desktop" und nur einmal ein Treffer.
+    ///
+    /// Die Registry kennt die Antwort immer. Am 03.09.2026 gegengeprueft: Sie
+    /// lieferte dieselbe Kennung ab7479f2-..., die auch die COM-Schnittstelle in
+    /// ihrem einen gelungenen Fall genannt hatte.
     /// </summary>
     internal static Guid? AktuellerDesktop()
     {
+        try
+        {
+            using var schluessel = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops");
+            if (schluessel?.GetValue("CurrentVirtualDesktop") is byte[] roh && roh.Length == 16)
+                return new Guid(roh);
+        }
+        catch { /* Schluessel fehlt: Windows ohne virtuelle Desktops */ }
+
+        // Rueckfall auf die COM-Schnittstelle. Sie antwortet nur, wenn gerade ein
+        // gewoehnliches Fenster vorn ist, aber besser als gar nichts.
         try
         {
             _desktopVerwalter ??= (IVirtualDesktopManager)new VirtualDesktopManagerKlasse();
@@ -470,7 +489,6 @@ internal static class Native
         }
         catch
         {
-            // Aeltere Windows-Fassungen ohne virtuelle Desktops, oder COM sperrt sich.
             return null;
         }
     }

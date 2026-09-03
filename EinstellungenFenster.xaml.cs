@@ -362,19 +362,40 @@ public partial class EinstellungenFenster : Window
         Programm.Einstellungen.Speichern();
     }
 
+    /// <summary>
+    /// Weist dem offenen Desktop das gewaehlte Video zu.
+    ///
+    /// Jeder Ausgang wird ins Protokoll geschrieben. Am 03.09.2026 meldete der
+    /// Nutzer, beim Druecken passiere nichts, und die Einstellungsdatei enthielt
+    /// danach trotzdem keine Zuweisung, obwohl das Fenster eine anzeigte. Ohne
+    /// Protokoll liess sich nicht sagen, an welcher der drei Stellen es
+    /// aussteigt.
+    /// </summary>
     private void DesktopZuweisen(object sender, RoutedEventArgs e)
     {
-        if (DesktopVideoWahl.SelectedItem is not string video) return;
+        if (DesktopVideoWahl.SelectedItem is not string video)
+        {
+            Hintergrund.Notiz($"Desktop zuweisen: kein Video gewaehlt "
+                            + $"({DesktopVideoWahl.Items.Count} in der Liste)");
+            DesktopStand.Text = "Erst oben ein Video auswählen.";
+            return;
+        }
         if (Native.AktuellerDesktop() is not Guid jetzt)
         {
-            DesktopStand.Text = "Windows nennt für dieses Fenster gerade keinen Desktop. "
-                              + "Das kommt vor, wenn das Fenster an alle Desktops geheftet ist.";
+            Hintergrund.Notiz("Desktop zuweisen: kein Desktop ermittelbar");
+            DesktopStand.Text = "Windows nennt gerade keinen virtuellen Desktop.";
             return;
         }
 
         Programm.Einstellungen.DesktopVideos[jetzt.ToString()] = video;
         Programm.Einstellungen.Speichern();
+        Hintergrund.Notiz($"Desktop {jetzt.ToString()[..8]}: {video} zugewiesen, "
+                        + $"jetzt {Programm.Einstellungen.DesktopVideos.Count} Zuweisungen");
         DesktopStandZeigen();
+
+        // Sofort zeigen, was zugewiesen wurde. Vorher geschah bis zum naechsten
+        // Desktopwechsel nichts sichtbares, und das sah nach einem Fehler aus.
+        Programm.DesktopSofortAnwenden();
     }
 
     private void DesktopLoesen(object sender, RoutedEventArgs e)

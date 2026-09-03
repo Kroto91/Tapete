@@ -410,6 +410,16 @@ public partial class App : Application
     private Guid? _letzterDesktop;
     private bool _desktopSchonGemeldet;
 
+    /// <summary>
+    /// Setzt das Video des offenen Desktops sofort, ohne auf einen Wechsel zu
+    /// warten. Fuer den Knopf im Einstellungsfenster.
+    /// </summary>
+    internal void DesktopSofortAnwenden()
+    {
+        _letzterDesktop = null;
+        DesktopWechselPruefen();
+    }
+
     private void DesktopWechselPruefen()
     {
         if (!Einstellungen.ProDesktopAn) return;
