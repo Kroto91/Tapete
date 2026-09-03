@@ -46,8 +46,25 @@ public partial class MainWindow : Window
         Programm.NeuigkeitGefunden += NeuigkeitZeigen;
         NeuigkeitZeigen();
 
-        EffektFeld.SizeChanged += (_, _) => EffektStarten();
+        // Beim Ziehen mit der Maus meldet WPF jede einzelne neue Groesse. Ein
+        // Neuaufbau je Meldung heisst zwanzig Textbloecke wegwerfen und mit
+        // eigenen Storyboards neu anlegen, und das sechzigmal in der Sekunde.
+        // Das Fenster ruckelte dabei und der Regen sprang staendig an den
+        // Anfang zurueck; gemeldet vom Nutzer am 03.09.2026.
+        //
+        // Deshalb wird erst gebaut, wenn die Groesse eine Viertelsekunde ruhig
+        // ist. Waehrend des Ziehens bleibt der alte Regen stehen, in der alten
+        // Breite. Das faellt kaum auf und kostet nichts.
+        _effektWacht = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        _effektWacht.Tick += (_, _) => { _effektWacht.Stop(); EffektStarten(); };
+        EffektFeld.SizeChanged += (_, _) => { _effektWacht.Stop(); _effektWacht.Start(); };
     }
+
+    /// <summary>Wartet nach der letzten Groessenmeldung, bevor der Regen neu entsteht.</summary>
+    private System.Windows.Threading.DispatcherTimer? _effektWacht;
 
     /// <summary>
     /// Der Zeichenregen des geladenen Themas.

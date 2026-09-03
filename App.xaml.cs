@@ -408,21 +408,53 @@ public partial class App : Application
     /// stehen: Ein schwarzer Hintergrund waere die schlechtere Antwort.
     /// </summary>
     private Guid? _letzterDesktop;
+    private bool _desktopSchonGemeldet;
 
     private void DesktopWechselPruefen()
     {
         if (!Einstellungen.ProDesktopAn) return;
 
         Guid? jetzt = Native.AktuellerDesktop();
-        if (jetzt is null || jetzt == _letzterDesktop) return;
+        if (jetzt is null)
+        {
+            // Nur einmal melden, sonst stuende das Protokoll alle drei Sekunden
+            // voll und die zweihundert Zeilen waeren in zehn Minuten verbraucht.
+            if (!_desktopSchonGemeldet)
+            {
+                Hintergrund.Notiz("Desktop: Windows nennt fuer das Vordergrundfenster keinen Desktop");
+                _desktopSchonGemeldet = true;
+            }
+            return;
+        }
+        _desktopSchonGemeldet = false;
+
+        if (jetzt == _letzterDesktop) return;
         _letzterDesktop = jetzt;
 
-        if (!Einstellungen.DesktopVideos.TryGetValue(jetzt.Value.ToString(), out string? name)) return;
-        string pfad = Path.Combine(Settings.VideoOrdner, name);
-        if (!File.Exists(pfad)) return;
-        if (string.Equals(pfad, _original, StringComparison.OrdinalIgnoreCase)) return;
+        // Nur der Anfang der Kennung, das reicht zum Unterscheiden und macht das
+        // Protokoll lesbar.
+        string kurz = jetzt.Value.ToString()[..8];
 
-        Hintergrund.Notiz("Desktopwechsel: " + Path.GetFileName(pfad));
+        if (!Einstellungen.DesktopVideos.TryGetValue(jetzt.Value.ToString(), out string? name))
+        {
+            Hintergrund.Notiz($"Desktop {kurz}: gewechselt, aber nichts zugewiesen "
+                            + $"({Einstellungen.DesktopVideos.Count} Zuweisungen gespeichert)");
+            return;
+        }
+
+        string pfad = Path.Combine(Settings.VideoOrdner, name);
+        if (!File.Exists(pfad))
+        {
+            Hintergrund.Notiz($"Desktop {kurz}: zugewiesene Datei fehlt");
+            return;
+        }
+        if (string.Equals(pfad, _original, StringComparison.OrdinalIgnoreCase))
+        {
+            Hintergrund.Notiz($"Desktop {kurz}: laeuft schon");
+            return;
+        }
+
+        Hintergrund.Notiz($"Desktop {kurz}: wechselt zu " + Path.GetFileName(pfad));
         HintergrundSetzen(pfad, null);
     }
 
