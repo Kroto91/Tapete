@@ -395,7 +395,6 @@ public partial class App : Application
             KarussellWeiter();
         };
         _karussellUhr.Start();
-        if (Einstellungen.ZeitplanAn) ZeitplanAnwenden();
     }
 
     /// <summary>
@@ -468,19 +467,30 @@ public partial class App : Application
         HintergrundSetzen(pfad, null);
     }
 
+    /// <summary>Die Uhrzeit beim letzten Blick auf den Zeitplan.</summary>
+    private string _zeitplanZuletzt =
+        DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+
     /// <summary>
-    /// Setzt das Video, das laut Zeitplan gerade gilt.
+    /// Wechselt, wenn seit dem letzten Blick eine Uhrzeit aus dem Zeitplan
+    /// ueberschritten wurde.
     ///
-    /// Laeuft es schon, geschieht nichts: Sonst startete der Abspieler alle zwanzig
-    /// Sekunden neu. Anders als beim Karussell wird ein verdeckter Desktop nicht
-    /// uebersprungen - ein Zeitplan soll zur Uhrzeit passen, auch wenn gerade
-    /// niemand hinsieht.
+    /// Anders als beim Karussell wird ein verdeckter Desktop nicht uebersprungen:
+    /// Ein Zeitplan soll zur Uhrzeit passen, auch wenn gerade niemand hinsieht.
     /// </summary>
     internal void ZeitplanAnwenden()
     {
-        string? soll = Einstellungen.ZeitplanPfadJetzt;
+        string jetzt = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+        string? name = Einstellungen.ZeitplanFaellig(_zeitplanZuletzt, jetzt);
+        _zeitplanZuletzt = jetzt;
+
+        string? soll = Einstellungen.ZeitplanPfad(name);
         if (soll is null) return;
-        if (string.Equals(soll, _original, StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(soll, _original, StringComparison.OrdinalIgnoreCase))
+        {
+            Hintergrund.Notiz("Zeitplan: " + Path.GetFileName(soll) + " laeuft schon");
+            return;
+        }
 
         Hintergrund.Notiz("Zeitplan: " + Path.GetFileName(soll));
         HintergrundSetzen(soll, null);

@@ -53,8 +53,10 @@ public partial class EinstellungenFenster : Window
             .FirstOrDefault(t => t.Datei == Programm.Einstellungen.Thema)
             ?? ThemaWahl.Items.Cast<ThemaEintrag>().First();
 
-        for (int st = 0; st < 24; st++) ZeitWahl.Items.Add($"{st:00}:00");
+        for (int st = 0; st < 24; st++) ZeitWahl.Items.Add($"{st:00}");
+        for (int mi = 0; mi < 60; mi++) MinuteWahl.Items.Add($"{mi:00}");
         ZeitWahl.SelectedIndex = DateTime.Now.Hour;
+        MinuteWahl.SelectedIndex = DateTime.Now.Minute;
         VideosFuellen(ZeitVideoWahl);
         ZeitplanStandZeigen();
         VideosFuellen(DesktopVideoWahl);
@@ -306,25 +308,44 @@ public partial class EinstellungenFenster : Window
         if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
     }
 
+    /// <summary>Die eingestellte Uhrzeit als "HH:mm", oder null.</summary>
+    private string? GewaehlteZeit() =>
+        ZeitWahl.SelectedItem is string st && MinuteWahl.SelectedItem is string mi
+            ? st + ":" + mi
+            : null;
+
     private void ZeitpunktEintragen(object sender, RoutedEventArgs e)
     {
-        if (ZeitWahl.SelectedItem is not string zeit
-            || ZeitVideoWahl.SelectedItem is not string video) return;
+        if (GewaehlteZeit() is not string zeit) return;
+        if (ZeitVideoWahl.SelectedItem is not string video)
+        {
+            Hintergrund.Notiz($"Zeitplan eintragen: kein Video gewaehlt "
+                            + $"({ZeitVideoWahl.Items.Count} in der Liste)");
+            ZeitplanStand.Text = "Erst rechts ein Video auswählen.";
+            return;
+        }
 
         Programm.Einstellungen.Zeitplan[zeit] = video;
         Programm.Einstellungen.Speichern();
+        Hintergrund.Notiz($"Zeitplan: {zeit} auf {video} gesetzt, "
+                        + $"jetzt {Programm.Einstellungen.Zeitplan.Count} Einträge");
         ZeitplanStandZeigen();
-        if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
+
+        // Bewusst nicht sofort anwenden. Ein Eintrag fuer elf Uhr soll um elf
+        // greifen und nicht in dem Moment, in dem er angelegt wird.
     }
 
     private void ZeitpunktEntfernen(object sender, RoutedEventArgs e)
     {
-        if (ZeitWahl.SelectedItem is not string zeit) return;
-        if (!Programm.Einstellungen.Zeitplan.Remove(zeit)) return;
+        if (GewaehlteZeit() is not string zeit) return;
+        if (!Programm.Einstellungen.Zeitplan.Remove(zeit))
+        {
+            ZeitplanStand.Text = "Für " + zeit + " ist nichts eingetragen.";
+            return;
+        }
 
         Programm.Einstellungen.Speichern();
         ZeitplanStandZeigen();
-        if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
     }
 
     // ---------- Virtuelle Desktops ----------

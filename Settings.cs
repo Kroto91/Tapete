@@ -113,38 +113,60 @@ public sealed class Settings
     public bool ProDesktopAn { get; set; }
 
     /// <summary>
-    /// Welcher Dateiname zur angegebenen Uhrzeit gilt. Null bei leerem Zeitplan.
+    /// Welcher Eintrag faellig wird, wenn die Uhr von <paramref name="vorher"/> auf
+    /// <paramref name="jetzt"/> weitergeht. Null, wenn dazwischen keine Uhrzeit
+    /// liegt.
     ///
-    /// Liegt die Uhrzeit vor dem fruehesten Eintrag, gilt der spaeteste des Tages:
-    /// Wer ab 22 Uhr ein Nachtvideo eintraegt, will es um 2 Uhr noch sehen und
-    /// nicht wieder das vom Vormittag. Verglichen wird auf Zeichenketten, weil
-    /// "HH:mm" in derselben Reihenfolge sortiert wie die Uhrzeit selbst.
+    /// Bis 1.13.72 wurde stattdessen gefragt, welcher Eintrag gerade gilt, mit
+    /// Umlauf ueber Mitternacht. Das war falsch gedacht: Bei einem einzigen
+    /// Eintrag galt er rund um die Uhr, und wer um 10:05 "ab 11:00" eintrug, sah
+    /// den Wechsel sofort. Ein Zeitplan soll um elf Uhr etwas tun, nicht vorher.
+    /// Gemeldet vom Nutzer am 03.09.2026.
+    ///
+    /// Gerechnet wird in Minuten seit <paramref name="vorher"/>, nicht auf
+    /// Zeichenketten sortiert. Der erste Anlauf tat das und fiel ueber Mitternacht
+    /// hin: Bei der Spanne 21:00 bis 08:00 galt 22:15 als spaeteste Uhrzeit,
+    /// obwohl 07:00 zeitlich zuletzt kam. Die Rechenprobe unten hat das gefunden,
+    /// bevor etwas ausgeliefert wurde.
+    ///
+    /// Liegen mehrere Uhrzeiten in der Spanne, gewinnt die zuletzt vergangene.
+    /// Das kommt vor, wenn der Rechner geschlafen hat.
     /// </summary>
-    public string? ZeitplanJetzt(string uhrzeit)
+    public string? ZeitplanFaellig(string vorher, string jetzt)
     {
-        var punkte = Zeitplan.OrderBy(p => p.Key, StringComparer.Ordinal).ToList();
-        if (punkte.Count == 0) return null;
-        int letzter = -1;
-        for (int i = 0; i < punkte.Count; i++)
-            if (string.CompareOrdinal(punkte[i].Key, uhrzeit) <= 0) letzter = i;
-        return letzter < 0 ? punkte[^1].Value : punkte[letzter].Value;
+        static int Minuten(string hhmm) =>
+            int.Parse(hhmm[..2], System.Globalization.CultureInfo.InvariantCulture) * 60
+            + int.Parse(hhmm[3..], System.Globalization.CultureInfo.InvariantCulture);
+
+        int von = Minuten(vorher);
+        // Abstand vorwaerts, immer zwischen 1 und 1440. Gleiche Uhrzeit heisst
+        // ein voller Tag, nicht null: Sonst faende ein Eintrag genau auf der
+        // Startzeit sich selbst.
+        int Abstand(int m) => m > von ? m - von : m - von + 1440;
+
+        int spanne = Abstand(Minuten(jetzt));
+        if (Minuten(jetzt) == von) return null;
+
+        string? beste = null;
+        int bester = 0;
+        foreach (var punkt in Zeitplan)
+        {
+            int abstand = Abstand(Minuten(punkt.Key));
+            if (abstand <= spanne && abstand > bester)
+            {
+                bester = abstand;
+                beste = punkt.Value;
+            }
+        }
+        return beste;
     }
 
-    /// <summary>
-    /// Das Video, das jetzt gilt, als vollstaendiger Pfad. Null, wenn der Zeitplan
-    /// leer ist oder die eingetragene Datei nicht mehr da liegt.
-    /// </summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    public string? ZeitplanPfadJetzt
+    /// <summary>Der Dateiname als vollstaendiger Pfad, sofern die Datei noch da liegt.</summary>
+    public string? ZeitplanPfad(string? name)
     {
-        get
-        {
-            string? name = ZeitplanJetzt(DateTime.Now.ToString("HH:mm",
-                System.Globalization.CultureInfo.InvariantCulture));
-            if (name is null) return null;
-            string pfad = Path.Combine(VideoOrdner, name);
-            return File.Exists(pfad) ? pfad : null;
-        }
+        if (name is null) return null;
+        string pfad = Path.Combine(VideoOrdner, name);
+        return File.Exists(pfad) ? pfad : null;
     }
 
     /// <summary>
@@ -158,26 +180,29 @@ public sealed class Settings
         void Pruefe(string was, bool gut) { if (!gut) fehler.Add(was); }
 
         var s = new Settings();
-        Pruefe("leerer Zeitplan liefert nichts", s.ZeitplanJetzt("12:00") is null);
+        Pruefe("leerer Zeitplan liefert nichts", s.ZeitplanFaellig("11:59", "12:00") is null);
 
         s.Zeitplan["07:00"] = "tag.mp4";
         s.Zeitplan["18:00"] = "abend.mp4";
-        s.Zeitplan["22:00"] = "nacht.mp4";
+        s.Zeitplan["22:15"] = "nacht.mp4";
 
-        Pruefe("morgens", s.ZeitplanJetzt("09:30") == "tag.mp4");
-        Pruefe("punktgenau", s.ZeitplanJetzt("18:00") == "abend.mp4");
-        Pruefe("abends", s.ZeitplanJetzt("20:00") == "abend.mp4");
-        Pruefe("nachts", s.ZeitplanJetzt("23:59") == "nacht.mp4");
-        Pruefe("nach Mitternacht gilt der letzte des Vortages",
-               s.ZeitplanJetzt("02:00") == "nacht.mp4");
-        Pruefe("kurz vor dem ersten Eintrag ebenso",
-               s.ZeitplanJetzt("06:59") == "nacht.mp4");
+        Pruefe("Uhrzeit gerade ueberschritten", s.ZeitplanFaellig("06:59", "07:00") == "tag.mp4");
+        Pruefe("mittendrin faellt nichts an", s.ZeitplanFaellig("09:30", "09:31") is null);
+        Pruefe("Minute wird beachtet", s.ZeitplanFaellig("22:14", "22:15") == "nacht.mp4");
+        Pruefe("eine Minute zu frueh faellt nichts an",
+               s.ZeitplanFaellig("22:13", "22:14") is null);
+        Pruefe("ueber Mitternacht faellt nichts an", s.ZeitplanFaellig("23:59", "00:00") is null);
+        Pruefe("nach langem Schlaf gewinnt die spaeteste",
+               s.ZeitplanFaellig("06:00", "23:00") == "nacht.mp4");
+        Pruefe("Schlaf ueber Mitternacht hinweg",
+               s.ZeitplanFaellig("21:00", "08:00") == "tag.mp4");
 
         var einer = new Settings();
-        einer.Zeitplan["12:00"] = "eins.mp4";
-        Pruefe("ein einziger Eintrag gilt rund um die Uhr",
-               einer.ZeitplanJetzt("00:00") == "eins.mp4"
-               && einer.ZeitplanJetzt("23:00") == "eins.mp4");
+        einer.Zeitplan["11:00"] = "eins.mp4";
+        Pruefe("ein einziger Eintrag greift nicht vor seiner Zeit",
+               einer.ZeitplanFaellig("10:05", "10:06") is null);
+        Pruefe("und greift, wenn sie da ist",
+               einer.ZeitplanFaellig("10:59", "11:00") == "eins.mp4");
 
         return fehler;
     }
