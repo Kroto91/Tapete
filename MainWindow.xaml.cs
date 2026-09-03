@@ -46,21 +46,31 @@ public partial class MainWindow : Window
         Programm.NeuigkeitGefunden += NeuigkeitZeigen;
         NeuigkeitZeigen();
 
-        // Beim Ziehen mit der Maus meldet WPF jede einzelne neue Groesse. Ein
-        // Neuaufbau je Meldung heisst zwanzig Textbloecke wegwerfen und mit
-        // eigenen Storyboards neu anlegen, und das sechzigmal in der Sekunde.
-        // Das Fenster ruckelte dabei und der Regen sprang staendig an den
-        // Anfang zurueck; gemeldet vom Nutzer am 03.09.2026.
+        // Waehrend des Ziehens ist der Regen ganz weg, danach kommt er zurueck.
         //
-        // Deshalb wird erst gebaut, wenn die Groesse eine Viertelsekunde ruhig
-        // ist. Waehrend des Ziehens bleibt der alte Regen stehen, in der alten
-        // Breite. Das faellt kaum auf und kostet nichts.
+        // Zwei Fassungen waren noetig. In 1.13.70 wurde nur der Neuaufbau
+        // verzoegert, weil er vorher bei jeder Groessenmeldung von Windows lief,
+        // also etwa sechzigmal in der Sekunde. Das reichte nicht: Die
+        // Aufzeichnung des Nutzers vom 03.09.2026 zeigt, dass die Fensterkante
+        // beim Ziehen in nur sieben von fuenfundvierzig Bildern wanderte, mit
+        // Pausen bis zu siebenhundert Millisekunden.
+        //
+        // Der Grund ist, dass der Regen weiterlief. Zwanzig Textbloecke mit je
+        // rund fuenfzig Zeilen, jeder mit einer Deckkraftmaske und einer
+        // Daueranimation, und das Fenster steht auf TextFormattingMode="Ideal".
+        // Diese Zeichenarbeit faellt in jedem Bild an, auch waehrend WPF das
+        // Layout neu rechnet. Weggenommen bleibt dem Ziehen die ganze Zeit.
         _effektWacht = new System.Windows.Threading.DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(250)
         };
         _effektWacht.Tick += (_, _) => { _effektWacht.Stop(); EffektStarten(); };
-        EffektFeld.SizeChanged += (_, _) => { _effektWacht.Stop(); _effektWacht.Start(); };
+        EffektFeld.SizeChanged += (_, _) =>
+        {
+            EffektFeld.Children.Clear();
+            _effektWacht.Stop();
+            _effektWacht.Start();
+        };
     }
 
     /// <summary>Wartet nach der letzten Groessenmeldung, bevor der Regen neu entsteht.</summary>
