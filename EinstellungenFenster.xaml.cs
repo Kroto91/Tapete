@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -42,6 +43,8 @@ public partial class EinstellungenFenster : Window
 
         StufenFuellen(HelligkeitWahl, Bildstufen, Programm.Einstellungen.Helligkeit, 0);
         StufenFuellen(SaettigungWahl, Bildstufen, Programm.Einstellungen.Saettigung, 0);
+        StufenFuellen(KontrastWahl, Bildstufen, Programm.Einstellungen.Kontrast, 0);
+        StufenFuellen(GammaWahl, Bildstufen, Programm.Einstellungen.Gamma, 0);
         StufenFuellen(TempoWahl, Tempostufen, Programm.Einstellungen.TempoProzent, 100);
         StufenFuellen(LautstaerkeWahl, Lautstufen, Programm.Einstellungen.Lautstaerke, 0);
 
@@ -50,6 +53,13 @@ public partial class EinstellungenFenster : Window
             .FirstOrDefault(t => t.Datei == Programm.Einstellungen.Thema)
             ?? ThemaWahl.Items.Cast<ThemaEintrag>().First();
 
+        for (int st = 0; st < 24; st++) ZeitWahl.Items.Add($"{st:00}:00");
+        ZeitWahl.SelectedIndex = DateTime.Now.Hour;
+        VideosFuellen(ZeitVideoWahl);
+        ZeitplanStandZeigen();
+        VideosFuellen(DesktopVideoWahl);
+        DesktopStandZeigen();
+
         EffektSchalter.IsChecked = Programm.Einstellungen.Effekte;
         ProfileFuellen();
         HdrSchalter.IsChecked = Programm.Einstellungen.Hdr;
@@ -57,6 +67,8 @@ public partial class EinstellungenFenster : Window
         PauseSchalter.IsChecked = Programm.Einstellungen.BeiVollbildPausieren;
         BildrateSchalter.IsChecked = Programm.Einstellungen.BildrateHalbieren;
         KarussellSchalter.IsChecked = Programm.Einstellungen.KarussellAn;
+        ZeitplanSchalter.IsChecked = Programm.Einstellungen.ZeitplanAn;
+        ProDesktopSchalter.IsChecked = Programm.Einstellungen.ProDesktopAn;
         AutostartSchalter.IsChecked = Settings.Autostart;
         SchonerSchalter.IsChecked = Bildschirmschoner.Eingetragen;
         SchonerStandZeigen();
@@ -236,6 +248,12 @@ public partial class EinstellungenFenster : Window
     private void SaettigungGewaehlt(object sender, SelectionChangedEventArgs e)
         => BildwertUebernehmen(SaettigungWahl, w => Programm.Einstellungen.Saettigung = w);
 
+    private void KontrastGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(KontrastWahl, w => Programm.Einstellungen.Kontrast = w);
+
+    private void GammaGewaehlt(object sender, SelectionChangedEventArgs e)
+        => BildwertUebernehmen(GammaWahl, w => Programm.Einstellungen.Gamma = w);
+
     private void TempoGewaehlt(object sender, SelectionChangedEventArgs e)
         => BildwertUebernehmen(TempoWahl, w => Programm.Einstellungen.TempoProzent = w);
 
@@ -253,6 +271,119 @@ public partial class EinstellungenFenster : Window
         setzen(st.Wert);
         Programm.Einstellungen.Speichern();
         Programm.HintergrundNeuAufbauen();
+    }
+
+    // ---------- Zeitplan ----------
+
+    /// <summary>Alle Videos aus dem Ordner zur Auswahl, nicht nur die angekreuzten.</summary>
+    private static void VideosFuellen(ComboBox liste)
+    {
+        liste.Items.Clear();
+        foreach (string name in Directory.EnumerateFiles(Settings.VideoOrdner)
+                                         .Where(Hintergrund.IstUnterstuetzt)
+                                         .Select(Path.GetFileName)
+                                         .OfType<string>()
+                                         .OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+            liste.Items.Add(name);
+        if (liste.Items.Count > 0) liste.SelectedIndex = 0;
+    }
+
+    /// <summary>Der ganze Zeitplan in einer Zeile, nach Uhrzeit sortiert.</summary>
+    private void ZeitplanStandZeigen()
+    {
+        var plan = Programm.Einstellungen.Zeitplan;
+        ZeitplanStand.Text = plan.Count == 0
+            ? "Noch kein Eintrag."
+            : string.Join("   ", plan.OrderBy(p => p.Key, StringComparer.Ordinal)
+                                     .Select(p => p.Key + " " + p.Value));
+    }
+
+    private void ZeitplanGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Programm.Einstellungen.ZeitplanAn = ZeitplanSchalter.IsChecked == true;
+        Programm.Einstellungen.Speichern();
+        if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
+    }
+
+    private void ZeitpunktEintragen(object sender, RoutedEventArgs e)
+    {
+        if (ZeitWahl.SelectedItem is not string zeit
+            || ZeitVideoWahl.SelectedItem is not string video) return;
+
+        Programm.Einstellungen.Zeitplan[zeit] = video;
+        Programm.Einstellungen.Speichern();
+        ZeitplanStandZeigen();
+        if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
+    }
+
+    private void ZeitpunktEntfernen(object sender, RoutedEventArgs e)
+    {
+        if (ZeitWahl.SelectedItem is not string zeit) return;
+        if (!Programm.Einstellungen.Zeitplan.Remove(zeit)) return;
+
+        Programm.Einstellungen.Speichern();
+        ZeitplanStandZeigen();
+        if (Programm.Einstellungen.ZeitplanAn) Programm.ZeitplanAnwenden();
+    }
+
+    // ---------- Virtuelle Desktops ----------
+
+    /// <summary>
+    /// Was fuer den gerade offenen Desktop hinterlegt ist. Das Einstellungsfenster
+    /// liegt selbst auf diesem Desktop, deshalb nennt Windows hier die richtige
+    /// Kennung.
+    /// </summary>
+    private void DesktopStandZeigen()
+    {
+        var zuweisungen = Programm.Einstellungen.DesktopVideos;
+        Guid? jetzt = Native.AktuellerDesktop();
+
+        string hier;
+        if (jetzt is null)
+            hier = "Windows nennt für dieses Fenster gerade keinen Desktop.";
+        else if (zuweisungen.TryGetValue(jetzt.Value.ToString(), out string? name))
+            hier = "Diesem Desktop ist " + name + " zugewiesen.";
+        else
+            hier = "Diesem Desktop ist noch nichts zugewiesen.";
+
+        DesktopStand.Text = zuweisungen.Count switch
+        {
+            0 => hier,
+            1 => hier + " Insgesamt ein Desktop belegt.",
+            _ => hier + $" Insgesamt {zuweisungen.Count} Desktops belegt."
+        };
+    }
+
+    private void ProDesktopGeaendert(object sender, RoutedEventArgs e)
+    {
+        if (_laedt) return;
+        Programm.Einstellungen.ProDesktopAn = ProDesktopSchalter.IsChecked == true;
+        Programm.Einstellungen.Speichern();
+    }
+
+    private void DesktopZuweisen(object sender, RoutedEventArgs e)
+    {
+        if (DesktopVideoWahl.SelectedItem is not string video) return;
+        if (Native.AktuellerDesktop() is not Guid jetzt)
+        {
+            DesktopStand.Text = "Windows nennt für dieses Fenster gerade keinen Desktop. "
+                              + "Das kommt vor, wenn das Fenster an alle Desktops geheftet ist.";
+            return;
+        }
+
+        Programm.Einstellungen.DesktopVideos[jetzt.ToString()] = video;
+        Programm.Einstellungen.Speichern();
+        DesktopStandZeigen();
+    }
+
+    private void DesktopLoesen(object sender, RoutedEventArgs e)
+    {
+        if (Native.AktuellerDesktop() is not Guid jetzt) return;
+        if (!Programm.Einstellungen.DesktopVideos.Remove(jetzt.ToString())) return;
+
+        Programm.Einstellungen.Speichern();
+        DesktopStandZeigen();
     }
 
     private void HdrGeaendert(object sender, RoutedEventArgs e)

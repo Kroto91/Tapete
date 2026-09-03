@@ -70,6 +70,11 @@ public partial class App : Application
             ? "Rechenprobe Verkleinern: in Ordnung"
             : "Rechenprobe Verkleinern FEHLER: " + string.Join("; ", probe));
 
+        var probeZ = Settings.ZeitplanProbe();
+        Hintergrund.Notiz(probeZ.Count == 0
+            ? "Rechenprobe Zeitplan: in Ordnung"
+            : "Rechenprobe Zeitplan FEHLER: " + string.Join("; ", probeZ));
+
         var probe2 = Karussell.Selbstpruefung();
         Hintergrund.Notiz(probe2.Count == 0
             ? "Rechenprobe Karussell: in Ordnung"
@@ -373,8 +378,13 @@ public partial class App : Application
         };
         _karussellUhr.Tick += (_, _) =>
         {
-            if (!Einstellungen.KarussellAn || _karussell.Leer) return;
             if (Einstellungen.Spielmodus) return;
+
+            // Der Zeitplan geht vor. Er wechselt nach Uhrzeit, nicht nach
+            // Standzeit, deshalb faellt die Minutenrechnung darunter weg.
+            if (Einstellungen.ZeitplanAn) { ZeitplanAnwenden(); return; }
+
+            if (!Einstellungen.KarussellAn || _karussell.Leer) return;
             if ((DateTime.Now - _letzterWechsel).TotalMinutes < Einstellungen.KarussellMinuten) return;
 
             // Verdeckten Desktop sieht niemand. Die Uhr laeuft weiter, gewechselt
@@ -385,6 +395,53 @@ public partial class App : Application
             KarussellWeiter();
         };
         _karussellUhr.Start();
+        if (Einstellungen.ZeitplanAn) ZeitplanAnwenden();
+    }
+
+    /// <summary>
+    /// Wechselt das Video, wenn der Nutzer auf einen anderen virtuellen Desktop
+    /// gegangen ist und fuer den eines hinterlegt ist.
+    ///
+    /// Haengt an der Vollbild-Wacht, weil die ohnehin alle drei Sekunden laeuft.
+    /// Eine eigene Uhr dafuer waere ein zweiter Takt fuer denselben Zweck.
+    /// Ist fuer den neuen Desktop nichts hinterlegt, bleibt das laufende Video
+    /// stehen: Ein schwarzer Hintergrund waere die schlechtere Antwort.
+    /// </summary>
+    private Guid? _letzterDesktop;
+
+    private void DesktopWechselPruefen()
+    {
+        if (!Einstellungen.ProDesktopAn) return;
+
+        Guid? jetzt = Native.AktuellerDesktop();
+        if (jetzt is null || jetzt == _letzterDesktop) return;
+        _letzterDesktop = jetzt;
+
+        if (!Einstellungen.DesktopVideos.TryGetValue(jetzt.Value.ToString(), out string? name)) return;
+        string pfad = Path.Combine(Settings.VideoOrdner, name);
+        if (!File.Exists(pfad)) return;
+        if (string.Equals(pfad, _original, StringComparison.OrdinalIgnoreCase)) return;
+
+        Hintergrund.Notiz("Desktopwechsel: " + Path.GetFileName(pfad));
+        HintergrundSetzen(pfad, null);
+    }
+
+    /// <summary>
+    /// Setzt das Video, das laut Zeitplan gerade gilt.
+    ///
+    /// Laeuft es schon, geschieht nichts: Sonst startete der Abspieler alle zwanzig
+    /// Sekunden neu. Anders als beim Karussell wird ein verdeckter Desktop nicht
+    /// uebersprungen - ein Zeitplan soll zur Uhrzeit passen, auch wenn gerade
+    /// niemand hinsieht.
+    /// </summary>
+    internal void ZeitplanAnwenden()
+    {
+        string? soll = Einstellungen.ZeitplanPfadJetzt;
+        if (soll is null) return;
+        if (string.Equals(soll, _original, StringComparison.OrdinalIgnoreCase)) return;
+
+        Hintergrund.Notiz("Zeitplan: " + Path.GetFileName(soll));
+        HintergrundSetzen(soll, null);
     }
 
     /// <summary>Sofort zum naechsten Video. Aus dem Menue, per Tastenkuerzel oder von der Uhr.</summary>
@@ -477,6 +534,8 @@ public partial class App : Application
         };
         _spielWacht.Tick += (_, _) =>
         {
+            DesktopWechselPruefen();
+
             // Derselbe Schalter, der das Pausieren steuert, steuert auch diese
             // Automatik. Vorher liefen beide getrennt: Wer "Bei Vollbild pausieren"
             // ausschaltete, bekam den Hintergrund trotzdem bei jedem Spiel
@@ -890,6 +949,8 @@ public partial class App : Application
         };
         if (Einstellungen.Helligkeit != 0) schalter.Add("--brightness=" + Einstellungen.Helligkeit);
         if (Einstellungen.Saettigung != 0) schalter.Add("--saturation=" + Einstellungen.Saettigung);
+        if (Einstellungen.Kontrast != 0) schalter.Add("--contrast=" + Einstellungen.Kontrast);
+        if (Einstellungen.Gamma != 0) schalter.Add("--gamma=" + Einstellungen.Gamma);
         if (Einstellungen.Hdr)
         {
             // Ob Windows die HDR-Ausgabe fuer ein Fenster unter dem Desktop

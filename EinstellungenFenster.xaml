@@ -111,6 +111,20 @@
                 </Grid>
 
                 <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Kontrast" Foreground="{DynamicResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="KontrastWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="KontrastGewaehlt" />
+                </Grid>
+
+                <Grid Style="{StaticResource Zeile}">
+                    <TextBlock Text="Mitteltöne" Foreground="{DynamicResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="GammaWahl" Width="180" HorizontalAlignment="Right"
+                              SelectionChanged="GammaGewaehlt" />
+                </Grid>
+
+                <Grid Style="{StaticResource Zeile}">
                     <TextBlock Text="Geschwindigkeit" Foreground="{DynamicResource Text}" FontSize="13"
                                VerticalAlignment="Center" />
                     <ComboBox x:Name="TempoWahl" Width="180" HorizontalAlignment="Right"
@@ -166,6 +180,51 @@
                 <TextBlock x:Name="KarussellStand" Style="{StaticResource Hinweis}" Margin="0,0,0,0" />
                 <TextBlock Style="{StaticResource Hinweis}"
                            Text="Welche Videos mitlaufen, entscheidet der Haken oben links auf jeder Kachel. Strg+Alt+W springt sofort zum nächsten, ebenso der Eintrag im Symbol neben der Uhr." />
+
+                <TextBlock Text="Zeitplan" Style="{StaticResource Abschnitt}" />
+
+                <CheckBox x:Name="ZeitplanSchalter" Content="Nach Uhrzeit wechseln"
+                          Checked="ZeitplanGeaendert" Unchecked="ZeitplanGeaendert" />
+
+                <Grid Style="{StaticResource Zeile}" Margin="0,14,0,4">
+                    <TextBlock Text="Ab" Foreground="{DynamicResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ComboBox x:Name="ZeitWahl" Width="90" Margin="0,0,8,0" />
+                        <ComboBox x:Name="ZeitVideoWahl" Width="240" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
+                    <Button Style="{StaticResource Ghost}" Content="Eintragen" Click="ZeitpunktEintragen"
+                            Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Ghost}" Content="Entfernen" Click="ZeitpunktEntfernen" />
+                </StackPanel>
+
+                <TextBlock x:Name="ZeitplanStand" Style="{StaticResource Hinweis}" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Ein Eintrag gilt ab seiner Uhrzeit, bis der nächste greift. Der späteste Eintrag läuft über Mitternacht weiter, morgens um zwei gilt also noch der von zweiundzwanzig Uhr. Ist der Zeitplan an, ruht das Karussell." />
+
+                <TextBlock Text="Virtuelle Desktops" Style="{StaticResource Abschnitt}" />
+
+                <CheckBox x:Name="ProDesktopSchalter" Content="Je Desktop ein eigenes Video"
+                          Checked="ProDesktopGeaendert" Unchecked="ProDesktopGeaendert" />
+
+                <Grid Style="{StaticResource Zeile}" Margin="0,14,0,4">
+                    <TextBlock Text="Auf diesem Desktop" Foreground="{DynamicResource Text}" FontSize="13"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="DesktopVideoWahl" Width="240" HorizontalAlignment="Right" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,4">
+                    <Button Style="{StaticResource Ghost}" Content="Zuweisen" Click="DesktopZuweisen"
+                            Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Ghost}" Content="Lösen" Click="DesktopLoesen" />
+                </StackPanel>
+
+                <TextBlock x:Name="DesktopStand" Style="{StaticResource Hinweis}" />
+                <TextBlock Style="{StaticResource Hinweis}"
+                           Text="Gemeint sind die Desktops, die Windows mit Strg+Windows+D anlegt und mit Strg+Windows+Pfeil wechselt. Zum Zuweisen auf den gewünschten Desktop gehen, hier ein Video wählen und auf Zuweisen klicken. Für einen Desktop ohne Zuweisung läuft das Video weiter, das gerade zu sehen ist." />
 
                 <TextBlock Text="Profile" Style="{StaticResource Abschnitt}" />
 

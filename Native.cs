@@ -420,6 +420,61 @@ internal static class Native
     internal const uint MOD_NOREPEAT = 0x4000;   // Halten wiederholt nicht
     internal const int WM_HOTKEY = 0x0312;
 
+    // ---------- Virtuelle Desktops ----------
+
+    /// <summary>
+    /// Die einzige von Microsoft dokumentierte Schnittstelle zu den virtuellen
+    /// Desktops. Sie kann zwei Dinge: die Kennung des Desktops nennen, auf dem ein
+    /// Fenster liegt, und sagen, ob ein Fenster auf dem gerade offenen liegt.
+    ///
+    /// "Welcher Desktop ist offen" gibt es nicht direkt. Die undokumentierte
+    /// Schwesterschnittstelle koennte das, wird aber zwischen Windows-Fassungen
+    /// umgebaut; ein Programm, das sie benutzt, geht nach jedem grossen Update
+    /// kaputt. Deshalb der Umweg ueber das Vordergrundfenster, siehe unten.
+    /// </summary>
+    [ComImport, Guid("a5cd92ff-29be-454c-8d04-d82879fb3f1b"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IVirtualDesktopManager
+    {
+        [PreserveSig] int IsWindowOnCurrentVirtualDesktop(IntPtr fenster, out bool aufAktuellem);
+        [PreserveSig] int GetWindowDesktopId(IntPtr fenster, out Guid kennung);
+        [PreserveSig] int MoveWindowToDesktop(IntPtr fenster, ref Guid kennung);
+    }
+
+    [ComImport, Guid("aa509086-5ca9-4c25-8f95-589d3c07b48a")]
+    private class VirtualDesktopManagerKlasse { }
+
+    private static IVirtualDesktopManager? _desktopVerwalter;
+
+    /// <summary>
+    /// Die Kennung des gerade offenen virtuellen Desktops, oder null.
+    ///
+    /// Gefragt wird das Fenster im Vordergrund, denn das liegt immer auf dem
+    /// offenen Desktop. Fenster, die auf allen Desktops zugleich liegen - der
+    /// Desktop selbst zum Beispiel, oder ein angeheftetes Fenster - antworten mit
+    /// 0x8002802B; dann laesst sich nichts sagen und der Aufrufer behaelt, was er
+    /// hat. Am 03.09.2026 auf dem Rechner des Nutzers geprueft: Das
+    /// Vordergrundfenster lieferte eine Kennung, das Shell-Fenster den Fehler.
+    /// </summary>
+    internal static Guid? AktuellerDesktop()
+    {
+        try
+        {
+            _desktopVerwalter ??= (IVirtualDesktopManager)new VirtualDesktopManagerKlasse();
+            IntPtr fenster = GetForegroundWindow();
+            if (fenster == IntPtr.Zero) return null;
+            return _desktopVerwalter.GetWindowDesktopId(fenster, out Guid kennung) == 0
+                   && kennung != Guid.Empty
+                ? kennung
+                : null;
+        }
+        catch
+        {
+            // Aeltere Windows-Fassungen ohne virtuelle Desktops, oder COM sperrt sich.
+            return null;
+        }
+    }
+
     /// <summary>Zeichnet das normale Windows-Hintergrundbild neu.</summary>
     internal static void RefreshDesktopWallpaper()
     {

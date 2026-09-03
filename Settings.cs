@@ -92,6 +92,97 @@ public sealed class Settings
         KarussellVideos.Select(n => Path.Combine(VideoOrdner, n)).Where(File.Exists);
 
     /// <summary>
+    /// Zeitplan: volle Stunde als "HH:00" auf Dateiname ohne Pfad, wie bei
+    /// KarussellVideos. Ist der Zeitplan an und nicht leer, wechselt der
+    /// Hintergrund nach Uhrzeit statt nach Minuten.
+    /// </summary>
+    public Dictionary<string, string> Zeitplan { get; set; } = [];
+
+    /// <summary>Nach Uhrzeit wechseln statt nach Minuten.</summary>
+    public bool ZeitplanAn { get; set; }
+
+    /// <summary>
+    /// Ein eigenes Video je virtuellem Desktop: Desktop-Kennung auf Dateiname ohne
+    /// Pfad. Die Kennungen vergibt Windows; sie bleiben ueber einen Neustart
+    /// erhalten, ein geloeschter Desktop hinterlaesst einen toten Eintrag. Der
+    /// stoert nicht, er greift nur nie wieder.
+    /// </summary>
+    public Dictionary<string, string> DesktopVideos { get; set; } = [];
+
+    /// <summary>Beim Wechsel des virtuellen Desktops das zugewiesene Video zeigen.</summary>
+    public bool ProDesktopAn { get; set; }
+
+    /// <summary>
+    /// Welcher Dateiname zur angegebenen Uhrzeit gilt. Null bei leerem Zeitplan.
+    ///
+    /// Liegt die Uhrzeit vor dem fruehesten Eintrag, gilt der spaeteste des Tages:
+    /// Wer ab 22 Uhr ein Nachtvideo eintraegt, will es um 2 Uhr noch sehen und
+    /// nicht wieder das vom Vormittag. Verglichen wird auf Zeichenketten, weil
+    /// "HH:mm" in derselben Reihenfolge sortiert wie die Uhrzeit selbst.
+    /// </summary>
+    public string? ZeitplanJetzt(string uhrzeit)
+    {
+        var punkte = Zeitplan.OrderBy(p => p.Key, StringComparer.Ordinal).ToList();
+        if (punkte.Count == 0) return null;
+        int letzter = -1;
+        for (int i = 0; i < punkte.Count; i++)
+            if (string.CompareOrdinal(punkte[i].Key, uhrzeit) <= 0) letzter = i;
+        return letzter < 0 ? punkte[^1].Value : punkte[letzter].Value;
+    }
+
+    /// <summary>
+    /// Das Video, das jetzt gilt, als vollstaendiger Pfad. Null, wenn der Zeitplan
+    /// leer ist oder die eingetragene Datei nicht mehr da liegt.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? ZeitplanPfadJetzt
+    {
+        get
+        {
+            string? name = ZeitplanJetzt(DateTime.Now.ToString("HH:mm",
+                System.Globalization.CultureInfo.InvariantCulture));
+            if (name is null) return null;
+            string pfad = Path.Combine(VideoOrdner, name);
+            return File.Exists(pfad) ? pfad : null;
+        }
+    }
+
+    /// <summary>
+    /// Rechenprobe fuer den Zeitplan. Laeuft wie die von Karussell bei jedem Start
+    /// mit; der Umlauf ueber Mitternacht ist die einzige Stelle, an der die Logik
+    /// nicht offensichtlich ist.
+    /// </summary>
+    internal static List<string> ZeitplanProbe()
+    {
+        var fehler = new List<string>();
+        void Pruefe(string was, bool gut) { if (!gut) fehler.Add(was); }
+
+        var s = new Settings();
+        Pruefe("leerer Zeitplan liefert nichts", s.ZeitplanJetzt("12:00") is null);
+
+        s.Zeitplan["07:00"] = "tag.mp4";
+        s.Zeitplan["18:00"] = "abend.mp4";
+        s.Zeitplan["22:00"] = "nacht.mp4";
+
+        Pruefe("morgens", s.ZeitplanJetzt("09:30") == "tag.mp4");
+        Pruefe("punktgenau", s.ZeitplanJetzt("18:00") == "abend.mp4");
+        Pruefe("abends", s.ZeitplanJetzt("20:00") == "abend.mp4");
+        Pruefe("nachts", s.ZeitplanJetzt("23:59") == "nacht.mp4");
+        Pruefe("nach Mitternacht gilt der letzte des Vortages",
+               s.ZeitplanJetzt("02:00") == "nacht.mp4");
+        Pruefe("kurz vor dem ersten Eintrag ebenso",
+               s.ZeitplanJetzt("06:59") == "nacht.mp4");
+
+        var einer = new Settings();
+        einer.Zeitplan["12:00"] = "eins.mp4";
+        Pruefe("ein einziger Eintrag gilt rund um die Uhr",
+               einer.ZeitplanJetzt("00:00") == "eins.mp4"
+               && einer.ZeitplanJetzt("23:00") == "eins.mp4");
+
+        return fehler;
+    }
+
+    /// <summary>
     /// Auf welchen Bildschirm das Video gehoert. Geraetename wie "\.\DISPLAY1",
     /// oder "*" fuer alle zusammen. Leer heisst Hauptbildschirm.
     ///
@@ -122,6 +213,16 @@ public sealed class Settings
 
     /// <summary>Farbsaettigung, -100 bis 100. 0 heisst unveraendert.</summary>
     public int Saettigung { get; set; }
+
+    /// <summary>Kontrast, -100 bis 100. 0 heisst unveraendert.</summary>
+    public int Kontrast { get; set; }
+
+    /// <summary>
+    /// Gamma, -100 bis 100. 0 heisst unveraendert. Hellt die Mitteltoene auf,
+    /// ohne Schwarz und Weiss mitzuziehen; bei einem dunklen Video hinter hellen
+    /// Symbolen wirkt das anders als Helligkeit.
+    /// </summary>
+    public int Gamma { get; set; }
 
     /// <summary>Wiedergabetempo in Prozent. 100 ist die Normalgeschwindigkeit.</summary>
     public int TempoProzent { get; set; } = 100;
