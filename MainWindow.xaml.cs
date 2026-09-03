@@ -322,7 +322,11 @@ public partial class MainWindow : Window
         double nutzbar = breite - rand * 2;
         double luecke = 3;
         double saeulenbreite = (nutzbar - luecke * (anzahl - 1)) / anzahl;
-        double boden = hoehe - 26;
+        // Die Saeulen stehen auf dem unteren Rand auf. Bis 1.13.75 lagen sie
+        // 26 Punkte darueber, weil dort eine Frequenzskala stehen sollte; die
+        // war hinter den Kacheln ohnehin kaum zu sehen, und das Spektrum sah
+        // aus, als schwebe es. Vom Nutzer am 03.09.2026 gemeldet.
+        double boden = hoehe;
         double vollhoehe = Math.Min(80, hoehe * 0.26);
 
         // Die Grundlinie und drei Marken dahinter, wie die dB-Skala eines Geraets.
