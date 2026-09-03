@@ -328,7 +328,7 @@ public partial class EinstellungenFenster : Window
         Programm.Einstellungen.Zeitplan[zeit] = video;
         Programm.Einstellungen.Speichern();
         Hintergrund.Notiz($"Zeitplan: {zeit} auf {video} gesetzt, "
-                        + $"jetzt {Programm.Einstellungen.Zeitplan.Count} Einträge");
+                        + $"jetzt {Programm.Einstellungen.Zeitplan.Count} Eintraege");
         ZeitplanStandZeigen();
 
         // Bewusst nicht sofort anwenden. Ein Eintrag fuer elf Uhr soll um elf
