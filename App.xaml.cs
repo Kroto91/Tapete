@@ -60,9 +60,44 @@ public partial class App : Application
     /// </summary>
     private IReadOnlyDictionary<string, string>? _karussellJeSchirm;
 
+    /// <summary>
+    /// Haengt die drei Stellen ab, an denen eine Ausnahme sonst spurlos
+    /// verschwindet: die Oberflaeche, alle uebrigen Threads und Tasks, auf deren
+    /// Ergebnis niemand mehr wartet. Tapete laeuft stundenlang im Hintergrund;
+    /// ohne diese Notizen faellt ein Absturz erst auf, wenn der Hintergrund weg
+    /// ist, und das Protokoll schweigt dazu.
+    ///
+    /// Bewusst wird nur notiert, nicht behandelt. Ein verschlucktes
+    /// DispatcherUnhandledException liesse das Programm mit kaputtem Zustand
+    /// weiterlaufen; das waere schlimmer als der Absturz. Am Verhalten aendert
+    /// sich also nichts, es kommt nur die Spur dazu.
+    /// </summary>
+    private void AbstuerzeProtokollieren()
+    {
+        DispatcherUnhandledException += (_, a) =>
+            Hintergrund.Notiz($"ABSTURZ: Oberflaeche, {a.Exception.GetType().Name}: {a.Exception.Message}");
+
+        AppDomain.CurrentDomain.UnhandledException += (_, a) =>
+        {
+            var f = a.ExceptionObject as Exception;
+            Hintergrund.Notiz($"ABSTURZ: Thread, {f?.GetType().Name}: {f?.Message}"
+                              + (a.IsTerminating ? " (Programm endet)" : ""));
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, a) =>
+        {
+            Hintergrund.Notiz($"ABSTURZ: Task unbeobachtet, {a.Exception.GetType().Name}: {a.Exception.Message}");
+            // Einziger Punkt, an dem sich doch etwas am Verhalten aendert: Ohne
+            // SetObserved bliebe die Ausnahme als unbehandelt vermerkt. Seit .NET 4.5
+            // beendet das den Prozess nicht mehr, sauber ist es trotzdem.
+            a.SetObserved();
+        };
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        AbstuerzeProtokollieren();
         Hintergrund.Notiz("OnStartup, Argumente: [" + string.Join(" ", e.Args) + "]");
 
         var probe = Verkleinern.Selbstpruefung();
