@@ -16,6 +16,11 @@ desktop.ini
 # Kopie der Programmdateien fuer die Weitergabe, wird bei Bedarf neu gefuellt.
 weitergabe/
 
+# Ordner fuer Probelaeufe. Am 06.09.2026 angelegt, um eine Fassung zu testen,
+# bevor sie veroeffentlicht wird. Enthaelt Kopien von mpv.exe und fertige
+# Setups, gehoert also nicht in die Geschichte.
+pruefung/
+
 # Werkstattnotizen und das Reparaturskript fuer den eigenen Rechner. Am
 # 01.09.2026 aus der Versionsverwaltung genommen: Das Skript schaltet fremde
 # Autostart-Eintraege ab und nennt die installierte Software beim Namen, die

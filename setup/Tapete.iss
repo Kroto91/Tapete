@@ -8,7 +8,7 @@
 ; Bauen:  ISCC.exe Tapete.iss
 
 #define Name      "Tapete"
-#define Version   "1.13.76"
+#define Version   "1.13.77"
 #define Autor     "Timm-Fabian Krotofil"
 #define Exe       "Tapete.exe"
 ; Beide Pfade werden beim Uebersetzen ausgerechnet, nicht fest eingetragen.
@@ -19,7 +19,7 @@
 #define Videos    GetEnv("USERPROFILE") + "\Videos\Tapeten"
 
 ; Mit  ISCC /DMitVideos Tapete.iss  kommen die zwoelf Beispielvideos mit ins Setup.
-; Ohne bleibt es beim Programm allein, rund 95 statt 640 MB.
+; Ohne bleibt es beim Programm allein, rund 81 statt 924 MB.
 
 [Setup]
 AppId={{7C4B1E2A-9D33-4F16-A8C5-2E0B6D41F9A3}
@@ -48,11 +48,15 @@ UninstallDisplayName={#Name} {#Version}
 WizardStyle=modern
 SetupIconFile={#SourcePath}..\app.ico
 
-; Das Nutzlast besteht fast nur aus einer gepackten .NET-Datei und einem
-; Videoabspieler - beides laesst sich kaum weiter verdichten. Starke
-; Kompression wuerde Minuten kosten und wenige Prozent bringen.
-Compression=lzma2/fast
-SolidCompression=no
+; Am 06.09.2026 nachgemessen. Der fruehere Kommentar hier behauptete, die
+; .NET-Datei sei bereits gepackt und starke Kompression braechte wenige Prozent
+; bei Minuten Bauzeit. Beides stimmte nicht: Die Datei lag unkomprimiert vor,
+; und die Umstellung bringt 13,9 MB, also 14,6 Prozent. Gemessen mit demselben
+; Quellstand: lzma2/fast ohne solide 99.772.116 Bytes, lzma2/max mit solide
+; 85.182.874 Bytes. Die Bauzeit stieg von 13 auf 48 Sekunden, und das trifft
+; nur den eigenen Rechner. Siehe wiki/themen/tapete.md.
+Compression=lzma2/max
+SolidCompression=yes
 
 ; Laeuft Tapete noch, fragt das Setup nach dem Schliessen, statt Dateien
 ; im Zugriff liegen zu lassen.

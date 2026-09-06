@@ -11,7 +11,7 @@
     <RootNamespace>Tapete</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.13.76</Version>
+    <Version>1.13.77</Version>
     <Product>Tapete</Product>
     <AssemblyTitle>Tapete</AssemblyTitle>
     <Company>Tapete</Company>
@@ -49,6 +49,18 @@
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
+    <!-- EnableCompressionInSingleFile bleibt bewusst aus. Am 06.09.2026 gemessen:
+         Es drueckt die Datei von 147,8 auf 66,2 MB, aber der ausgelieferte
+         Installer waechst dadurch von 95,2 auf 102,2 MB. Das Einzeldatei-Paket
+         packt mit Deflate, Inno Setup mit lzma2; wer vorher packt, nimmt dem
+         Installer die bessere Kompression weg. Siehe wiki/themen/tapete.md. -->
+    <!-- MetadataUpdaterSupport, DebuggerSupport und HttpActivityPropagationSupport
+         wurden am 06.09.2026 gemessen: null Ersparnis. Diese Schalter sagen dem
+         Trimmer, was er wegschneiden darf, und ohne PublishTrimmed schneidet
+         niemand. PublishTrimmed wiederum unterstuetzt WPF nicht.
+         UseSystemResourceKeys waere ohnehin ausgeschieden: Es ersetzt
+         Ausnahmetexte durch Schluessel, und an 22 Stellen landet e.Message im
+         Protokoll. -->
   </PropertyGroup>
 
 </Project>
