@@ -1023,7 +1023,7 @@ public partial class App : Application
     /// englischem Punkt: Auf einem deutschen Windows machte ToString() sonst
     /// "1,25" daraus, und mpv nimmt das nicht an.
     /// </summary>
-    internal static List<string> MpvSchalter(Settings Einstellungen)
+    private static List<string> MpvSchalter(Settings Einstellungen)
     {
         var schalter = new List<string>
         {
@@ -1072,7 +1072,7 @@ public partial class App : Application
     /// Karussells: Wer ein Video ausdruecklich auf einen Schirm legt, will es dort
     /// behalten, auch waehrend das Karussell laeuft.
     /// </summary>
-    internal static Dictionary<string, string> VerteilungMischen(
+    private static Dictionary<string, string> VerteilungMischen(
         IReadOnlyDictionary<string, string>? karussell,
         IReadOnlyDictionary<string, string> fest)
     {
