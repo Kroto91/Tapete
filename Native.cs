@@ -504,4 +504,104 @@ internal static class Native
         }
         catch { /* nicht schlimm, der Desktop zeichnet sich ohnehin bald neu */ }
     }
+
+    // ---------------------------------------------------------------------
+    // Symbol im Infobereich
+    //
+    // Am 06.09.2026 ergaenzt. Vorher machte das System.Windows.Forms.NotifyIcon.
+    // WinForms sperrt aber das Zuschneiden beim Veroeffentlichen (NETSDK1175),
+    // und es war der einzige Grund, warum das Paket ueberhaupt WinForms zog.
+    // Shell_NotifyIcon ist genau die Windows-Funktion, die NotifyIcon selbst
+    // aufruft. Siehe wiki/themen/tapete.md.
+    // ---------------------------------------------------------------------
+
+    internal const int NIM_ADD = 0x0;
+    internal const int NIM_MODIFY = 0x1;
+    internal const int NIM_DELETE = 0x2;
+
+    internal const int NIF_MESSAGE = 0x1;
+    internal const int NIF_ICON = 0x2;
+    internal const int NIF_TIP = 0x4;
+
+    /// <summary>Eigene Nachricht fuer die Klicks auf das Symbol. WM_APP ist 0x8000.</summary>
+    internal const int WM_TRAY = 0x8000 + 1;
+
+    internal const int WM_LBUTTONDBLCLK = 0x0203;
+    internal const int WM_RBUTTONUP = 0x0205;
+
+    /// <summary>
+    /// Der Tooltip fasst 128 Zeichen, die Struktur muss trotzdem vollstaendig sein:
+    /// Windows prueft cbSize und lehnt eine zu kurze Angabe ab.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct NOTIFYICONDATA
+    {
+        internal int cbSize;
+        internal IntPtr hWnd;
+        internal int uID;
+        internal int uFlags;
+        internal int uCallbackMessage;
+        internal IntPtr hIcon;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        internal string szTip;
+        internal int dwState;
+        internal int dwStateMask;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        internal string szInfo;
+        internal int uVersion;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        internal string szInfoTitle;
+        internal int dwInfoFlags;
+        internal Guid guidItem;
+        internal IntPtr hBalloonIcon;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpData);
+
+    /// <summary>Holt das erste Symbol aus einer Datei, hier aus der eigenen exe.</summary>
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    internal static extern int ExtractIconEx(string lpszFile, int nIconIndex,
+        out IntPtr phiconLarge, out IntPtr phiconSmall, int nIcons);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    internal static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+    /// <summary>IDI_APPLICATION, das Standardsymbol von Windows.</summary>
+    internal static readonly IntPtr IDI_APPLICATION = new(32512);
+
+    [DllImport("user32.dll")]
+    internal static extern bool DestroyIcon(IntPtr hIcon);
+
+    /// <summary>
+    /// Noetig vor dem Oeffnen des Menues am Symbol: Ohne den Vordergrundwechsel
+    /// bleibt ein Menue offen stehen, wenn der Nutzer daneben klickt. Der Weg ist
+    /// seit den ersten Tagen des Infobereichs derselbe und in der Windows-Doku zu
+    /// Shell_NotifyIcon ausdruecklich beschrieben.
+    /// </summary>
+    [DllImport("user32.dll")]
+    internal static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    // ---------------------------------------------------------------------
+    // Stromversorgung
+    //
+    // Ersetzt SystemInformation.PowerStatus aus WinForms. Die Klasse dort ruft
+    // ihrerseits genau diese Funktion auf.
+    // ---------------------------------------------------------------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct SYSTEM_POWER_STATUS
+    {
+        /// <summary>0 = Akku, 1 = Netz, 255 = unbekannt.</summary>
+        internal byte ACLineStatus;
+        /// <summary>Bit 128 gesetzt heisst: gar kein Akku im Geraet.</summary>
+        internal byte BatteryFlag;
+        internal byte BatteryLifePercent;
+        internal byte SystemStatusFlag;
+        internal int BatteryLifeTime;
+        internal int BatteryFullLifeTime;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
 }

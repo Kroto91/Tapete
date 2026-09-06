@@ -1,10 +1,9 @@
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
-using Forms = System.Windows.Forms;
 
 namespace Tapete;
 
@@ -23,8 +22,9 @@ public partial class App : Application
 
     private Hintergrund? _wallpaper;
     private MainWindow? _fenster;
-    private Forms.NotifyIcon? _tray;
-    private Forms.ToolStripMenuItem? _spielEintrag;
+    private Infobereich? _tray;
+    private ContextMenu? _trayMenu;
+    private MenuItem? _spielEintrag;
 
     /// <summary>True, wenn die Automatik eingeschaltet hat und nicht der Nutzer.</summary>
     private bool _spielAutomatisch;
@@ -156,8 +156,11 @@ public partial class App : Application
         Hintergrund.SymboleWiederherstellen();
 
         _fenster = new MainWindow();
-        TrayAufbauen();
+        // Reihenfolge seit dem 06.09.2026 vertauscht: Das Symbol im Infobereich
+        // haengt an demselben Fensterhandle wie die Tastenkuerzel, und das legt
+        // erst TastenkuerzelAnmelden an.
         TastenkuerzelAnmelden();
+        TrayAufbauen();
         SpielAutomatikStarten();
         KarussellStarten();
         _ = NachAktualisierungSehen();
@@ -696,6 +699,9 @@ public partial class App : Application
 
     private IntPtr Fensternachricht(IntPtr hwnd, int nachricht, IntPtr wp, IntPtr lp, ref bool behandelt)
     {
+        // Klicks auf das Symbol im Infobereich laufen ueber dasselbe Fenster.
+        if (_tray is not null && _tray.Nachricht(nachricht, lp)) { behandelt = true; return IntPtr.Zero; }
+
         if (nachricht != Native.WM_HOTKEY) return IntPtr.Zero;
         if (wp.ToInt32() == HotkeyKennung) { SpielmodusUmschalten(); behandelt = true; }
         else if (wp.ToInt32() == HotkeyWechseln) { KarussellWeiter(); behandelt = true; }
@@ -704,7 +710,7 @@ public partial class App : Application
 
     private void SpielmodusAnzeigen()
     {
-        if (_spielEintrag is not null) _spielEintrag.Checked = Einstellungen.Spielmodus;
+        if (_spielEintrag is not null) _spielEintrag.IsChecked = Einstellungen.Spielmodus;
         _fenster?.StandAktualisieren();
         TrayTextSetzen();
     }
@@ -1181,47 +1187,69 @@ public partial class App : Application
 
     // ---------- Infobereich ----------
 
+    /// <summary>
+    /// Symbol und Menue neben der Uhr. Das Symbol kommt seit dem 06.09.2026 von
+    /// <see cref="Infobereich"/> statt von WinForms, das Menue ist ein gewoehnliches
+    /// WPF-Kontextmenue. Beides zusammen macht WinForms im Projekt entbehrlich und
+    /// gibt damit das Zuschneiden beim Veroeffentlichen frei.
+    ///
+    /// Aufgerufen wird das erst nach <see cref="TastenkuerzelAnmelden"/>, weil das
+    /// Symbol dasselbe Fensterhandle braucht wie die Tastenkuerzel.
+    /// </summary>
     private void TrayAufbauen()
     {
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Fenster anzeigen", null, (_, _) => FensterZeigen());
+        _trayMenu = new ContextMenu();
+
+        _trayMenu.Items.Add(Eintrag("Fenster anzeigen", FensterZeigen));
 
         // Der eigentliche Weg zum Spielmodus: Rechtsklick neben der Uhr, ein Klick.
         // Dafuer muss das Fenster nicht geoeffnet werden - und wer gleich spielen
         // will, hat es nicht offen.
-        _spielEintrag = new Forms.ToolStripMenuItem("Spielmodus", null,
-            (_, _) => SpielmodusUmschalten())
-        { Checked = Einstellungen.Spielmodus };
-        menu.Items.Add(_spielEintrag);
+        _spielEintrag = Eintrag("Spielmodus", SpielmodusUmschalten);
+        _spielEintrag.IsCheckable = true;
+        _spielEintrag.IsChecked = Einstellungen.Spielmodus;
+        _trayMenu.Items.Add(_spielEintrag);
 
-        menu.Items.Add("Naechstes Video", null, (_, _) => KarussellWeiter());
-        menu.Items.Add("Hintergrund aus", null, (_, _) => HintergrundAus());
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Beenden", null, (_, _) => Beenden());
+        _trayMenu.Items.Add(Eintrag("Naechstes Video", KarussellWeiter));
+        _trayMenu.Items.Add(Eintrag("Hintergrund aus", () => HintergrundAus()));
+        _trayMenu.Items.Add(new Separator());
+        _trayMenu.Items.Add(Eintrag("Beenden", Beenden));
 
-        _tray = new Forms.NotifyIcon
+        _tray = new Infobereich();
+        _tray.Doppelklick += FensterZeigen;
+        _tray.Rechtsklick += TrayMenueZeigen;
+
+        IntPtr h = _quelle?.Handle ?? IntPtr.Zero;
+        if (h == IntPtr.Zero)
         {
-            Icon = EigenesIcon(),
-            Visible = true,
-            Text = "Tapete",
-            ContextMenuStrip = menu
-        };
-        _tray.DoubleClick += (_, _) => FensterZeigen();
+            Hintergrund.Notiz("Infobereich: kein Fensterhandle, Symbol faellt aus");
+            return;
+        }
+
+        _tray.Anzeigen(h, "Tapete");
+        TrayTextSetzen();
     }
 
-    private static Icon EigenesIcon()
+    private static MenuItem Eintrag(string text, Action tun)
     {
-        try
-        {
-            string? exe = Environment.ProcessPath;
-            if (!string.IsNullOrEmpty(exe))
-            {
-                var ico = Icon.ExtractAssociatedIcon(exe);
-                if (ico is not null) return ico;
-            }
-        }
-        catch { }
-        return SystemIcons.Application;
+        var m = new MenuItem { Header = text };
+        m.Click += (_, _) => tun();
+        return m;
+    }
+
+    /// <summary>
+    /// Oeffnet das Menue an der Maus. Der Vordergrundwechsel davor ist noetig,
+    /// sonst bleibt das Menue stehen, wenn der Nutzer daneben klickt; das ist bei
+    /// Symbolen im Infobereich seit jeher so und steht auch in der Windows-Doku.
+    /// </summary>
+    private void TrayMenueZeigen()
+    {
+        if (_trayMenu is null) return;
+
+        if (_quelle is not null) Native.SetForegroundWindow(_quelle.Handle);
+
+        _trayMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        _trayMenu.IsOpen = true;
     }
 
     private void TrayTextSetzen()
@@ -1230,7 +1258,7 @@ public partial class App : Application
         string t = Einstellungen.Spielmodus ? "Tapete – Spielmodus"
             : AktuellesVideo is null ? "Tapete – aus"
             : "Tapete – " + Path.GetFileName(AktuellesVideo);
-        _tray.Text = t.Length > 63 ? t[..60] + "..." : t;   // Windows erlaubt nur 63 Zeichen
+        _tray.TextSetzen(t);
     }
 
     private void FensterZeigen()
@@ -1245,7 +1273,7 @@ public partial class App : Application
     private void Beenden()
     {
         HintergrundAus(merken: false);
-        if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
+        _tray?.Dispose();
         Shutdown();
     }
 
@@ -1259,7 +1287,7 @@ public partial class App : Application
             try { Native.UnregisterHotKey(_quelle.Handle, HotkeyWechseln); } catch { }
             _quelle.RemoveHook(Fensternachricht);
         }
-        if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
+        _tray?.Dispose();
         base.OnExit(e);
     }
 }

@@ -4,7 +4,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
+    <!-- UseWindowsForms ist am 06.09.2026 herausgeflogen. Es kam allein wegen des
+         Symbols im Infobereich und der Akkuabfrage herein, beides laeuft jetzt
+         ueber Native.cs. WinForms sperrte zugleich das Zuschneiden beim
+         Veroeffentlichen (NETSDK1175). Siehe wiki/themen/tapete.md. -->
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Tapete</AssemblyName>
@@ -35,13 +38,6 @@
          ComboBox. Die vorhandenen Schalter und Textfelder liefen nie in diesen
          Pfad, deshalb fiel es bis zum 31.08.2026 nicht auf. -->
   </PropertyGroup>
-
-  <!-- WinForms wird nur fuer das Symbol im Infobereich gebraucht. Ohne diese Zeile
-       kollidieren Typnamen wie Application oder DragEventArgs mit denen von WPF. -->
-  <ItemGroup>
-    <Using Remove="System.Windows.Forms" />
-    <Using Remove="System.Drawing" />
-  </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

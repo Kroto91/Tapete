@@ -420,19 +420,24 @@ public sealed class Hintergrund : IDisposable
     }
 
     /// <summary>
-    /// Laeuft der Rechner gerade auf Akku? Ein Rechner ohne Akku meldet
-    /// <c>NoSystemBattery</c> und faellt damit hier nie hinein; bei unbekanntem
-    /// Zustand wird nicht pausiert, denn ein stehendes Bild ohne Grund faellt
-    /// mehr auf als ein laufendes.
+    /// Laeuft der Rechner gerade auf Akku? Ein Rechner ohne Akku faellt hier nie
+    /// hinein; bei unbekanntem Zustand wird nicht pausiert, denn ein stehendes
+    /// Bild ohne Grund faellt mehr auf als ein laufendes.
+    ///
+    /// Seit dem 06.09.2026 ueber <c>GetSystemPowerStatus</c> statt ueber
+    /// <c>SystemInformation.PowerStatus</c> aus WinForms. Dieselbe Auskunft,
+    /// dieselbe Windows-Funktion dahinter, aber ohne WinForms im Projekt.
     /// </summary>
     private bool AufAkku()
     {
         if (!BeiAkkuPausieren) return false;
         try
         {
-            var stand = System.Windows.Forms.SystemInformation.PowerStatus;
-            return stand.PowerLineStatus == System.Windows.Forms.PowerLineStatus.Offline
-                && stand.BatteryChargeStatus != System.Windows.Forms.BatteryChargeStatus.NoSystemBattery;
+            if (!Native.GetSystemPowerStatus(out var stand)) return false;
+
+            // ACLineStatus: 0 heisst Akkubetrieb, 1 Netz, 255 unbekannt.
+            // BatteryFlag mit gesetztem Bit 128: gar kein Akku im Geraet.
+            return stand.ACLineStatus == 0 && (stand.BatteryFlag & 128) == 0;
         }
         catch { return false; }
     }
