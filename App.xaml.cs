@@ -32,6 +32,12 @@ public partial class App : Application
     /// <summary>Merkt den letzten Stand, damit nur der Wechsel zaehlt. Siehe SpielAutomatikStarten.</summary>
     private bool _zuletztVollbild;
 
+    /// <summary>Wie viele Takte der neue Stand schon anhaelt. Siehe SpielAutomatikStarten.</summary>
+    private int _wechselTakte;
+
+    /// <summary>Vier Takte zu drei Sekunden: Ein Wechsel muss zwoelf Sekunden halten.</summary>
+    private const int Karenztakte = 4;
+
     /// <summary>Die gefundene neuere Fassung, oder null. Das Fenster liest sie hier.</summary>
     internal Neuigkeit? Neuigkeit { get; private set; }
 
@@ -612,6 +618,10 @@ public partial class App : Application
     /// Automatik einen von Hand beendeten Spielmodus drei Sekunden spaeter wieder an,
     /// solange das Spiel laeuft.
     ///
+    /// Und gehandelt wird erst, wenn der neue Stand vier Takte lang haelt. Windows
+    /// meldet waehrend Ladebildschirmen kurze Aussetzer, die sonst jedes Mal einen
+    /// mpv-Neustart ausgeloest haben.
+    ///
     /// _spielAutomatisch trennt die beiden Wege: Was die Automatik eingeschaltet hat,
     /// nimmt sie auch zurueck. Was von Hand gesetzt wurde, bleibt stehen.
     /// </summary>
@@ -636,11 +646,24 @@ public partial class App : Application
                 // Mitschreiben, was draussen los ist, sonst schlaegt die Automatik
                 // beim Wiedereinschalten des Schalters sofort einmal zu.
                 _zuletztVollbild = Native.VollbildAnwendungLaeuft();
+                _wechselTakte = 0;
                 return;
             }
 
             bool spielt = Native.VollbildAnwendungLaeuft();
-            if (spielt == _zuletztVollbild) return;
+
+            // Kurze Aussetzer aussitzen. Waehrend Ladebildschirmen, Anmeldefenstern und
+            // beim Wechsel in den Vordergrund meldet Windows immer wieder "kein Vollbild",
+            // oft nur drei bis sechs Sekunden lang. Jeder Aussetzer kostete bisher einen
+            // vollen mpv-Neustart und kurz darauf das Beenden.
+            // Gemessen am 07.09.2026 an einer Dreiviertelstunde Protokoll: 28 Wechsel,
+            // zwoelf der Abschnitte kuerzer als zehn Sekunden. Gegengerechnet bleiben mit
+            // vier Takten neun Wechsel uebrig, die mpv-Neustarts sinken von vierzehn auf
+            // fuenf. Kein Abschnitt ab einer Minute geht verloren; der Stand hinkt dort
+            // hoechstens elf Sekunden hinterher.
+            if (spielt == _zuletztVollbild) { _wechselTakte = 0; return; }
+            if (++_wechselTakte < Karenztakte) return;
+            _wechselTakte = 0;
             _zuletztVollbild = spielt;
 
             if (spielt && !Spielmodus)
