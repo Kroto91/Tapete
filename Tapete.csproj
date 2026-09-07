@@ -14,7 +14,7 @@
     <RootNamespace>Tapete</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.13.78</Version>
+    <Version>1.13.79</Version>
     <Product>Tapete</Product>
     <AssemblyTitle>Tapete</AssemblyTitle>
     <Company>Tapete</Company>
